@@ -21,6 +21,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   UserRole _selectedRole = UserRole.member;
   bool _isPasswordVisible = false;
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
   String? _errorMessage;
 
   @override
@@ -30,6 +31,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _passwordController.dispose();
     _trainerIdController.dispose();
     super.dispose();
+  }
+
+  Future<void> _signInWithGoogle() async {
+    if (_selectedRole == UserRole.member && _trainerIdController.text.trim().isEmpty) {
+      setState(() => _errorMessage = 'Google ile kayıt için davet kodunu girin.');
+      return;
+    }
+    setState(() {
+      _isGoogleLoading = true;
+      _errorMessage = null;
+    });
+    final error = await context.read<AuthService>().signInWithGoogle(
+          role: _selectedRole,
+          inviteCode: _selectedRole == UserRole.member
+              ? _trainerIdController.text.trim()
+              : null,
+        );
+    if (mounted) {
+      setState(() {
+        _isGoogleLoading = false;
+        _errorMessage = error;
+      });
+    }
   }
 
   Future<void> _register() async {
@@ -43,10 +67,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           password: _passwordController.text,
           name: _nameController.text.trim(),
           role: _selectedRole,
-          trainerId: _selectedRole == UserRole.member
-              ? _trainerIdController.text.trim().isEmpty
-                  ? null
-                  : _trainerIdController.text.trim()
+          inviteCode: _selectedRole == UserRole.member
+              ? _trainerIdController.text.trim()
               : null,
         );
     if (mounted) {
@@ -185,6 +207,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         )
                       : const Text('Kayıt Ol'),
                 ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    const Expanded(child: Divider()),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        'veya',
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
+                    ),
+                    const Expanded(child: Divider()),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                OutlinedButton.icon(
+                  onPressed: (_isLoading || _isGoogleLoading) ? null : _signInWithGoogle,
+                  icon: _isGoogleLoading
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.g_mobiledata, size: 24),
+                  label: const Text('Google ile Kayıt Ol'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                    side: const BorderSide(color: AppColors.cardBorder),
+                    foregroundColor: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 24),
               ],
             ),
           ),

@@ -17,6 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
   String? _errorMessage;
 
   @override
@@ -24,6 +25,20 @@ class _LoginScreenState extends State<LoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _isGoogleLoading = true;
+      _errorMessage = null;
+    });
+    final error = await context.read<AuthService>().signInWithGoogle();
+    if (mounted) {
+      setState(() {
+        _isGoogleLoading = false;
+        _errorMessage = error;
+      });
+    }
   }
 
   Future<void> _signIn() async {
@@ -146,6 +161,37 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         )
                       : const Text('Giriş Yap'),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    const Expanded(child: Divider()),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        'veya',
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
+                    ),
+                    const Expanded(child: Divider()),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                OutlinedButton.icon(
+                  onPressed: (_isLoading || _isGoogleLoading) ? null : _signInWithGoogle,
+                  icon: _isGoogleLoading
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.g_mobiledata, size: 24),
+                  label: const Text('Google ile Giriş Yap'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                    side: const BorderSide(color: AppColors.cardBorder),
+                    foregroundColor: AppColors.textPrimary,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 Row(

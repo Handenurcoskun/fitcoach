@@ -57,7 +57,7 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  Future<String?> signInWithGoogle({required UserRole role, String? inviteCode}) async {
+  Future<String?> signInWithGoogle({UserRole? role, String? inviteCode}) async {
     try {
       _isLoading = true;
       notifyListeners();
@@ -76,6 +76,12 @@ class AuthService extends ChangeNotifier {
       final uid = userCredential.user!.uid;
       final existingDoc = await _db.collection('users').doc(uid).get();
       if (!existingDoc.exists) {
+        if (role == null) {
+          await _auth.signOut();
+          _isLoading = false;
+          notifyListeners();
+          return 'Bu Google hesabıyla kayıt bulunamadı. Kayıt Ol sayfasını kullanın.';
+        }
         String? trainerId;
         if (role == UserRole.member && inviteCode != null) {
           trainerId = await _getTrainerIdByInviteCode(inviteCode);
