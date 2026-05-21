@@ -47,3 +47,8 @@ app.*.map.json
 # Firebase - sensitive files (never commit these)
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
+
+# Keystore - never commit these
+android/key.properties
+android/app/*.jks
+android/app/*.keystore
