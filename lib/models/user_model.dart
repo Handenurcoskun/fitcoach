@@ -8,6 +8,7 @@ class UserModel {
   final String email;
   final UserRole role;
   final String? trainerId;
+  final String? inviteCode; // Sadece trainer için
   final DateTime createdAt;
 
   const UserModel({
@@ -16,6 +17,7 @@ class UserModel {
     required this.email,
     required this.role,
     this.trainerId,
+    this.inviteCode,
     required this.createdAt,
   });
 
@@ -28,6 +30,7 @@ class UserModel {
       email: map['email'] ?? '',
       role: map['role'] == 'trainer' ? UserRole.trainer : UserRole.member,
       trainerId: map['trainerId'],
+      inviteCode: map['inviteCode'],
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -38,6 +41,7 @@ class UserModel {
       'email': email,
       'role': role == UserRole.trainer ? 'trainer' : 'member',
       'trainerId': trainerId,
+      if (inviteCode != null) 'inviteCode': inviteCode,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
@@ -47,6 +51,7 @@ class UserModel {
     String? email,
     UserRole? role,
     String? trainerId,
+    String? inviteCode,
   }) {
     return UserModel(
       id: id,
@@ -54,6 +59,7 @@ class UserModel {
       email: email ?? this.email,
       role: role ?? this.role,
       trainerId: trainerId ?? this.trainerId,
+      inviteCode: inviteCode ?? this.inviteCode,
       createdAt: createdAt,
     );
   }

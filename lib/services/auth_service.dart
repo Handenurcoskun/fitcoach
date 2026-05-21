@@ -1,11 +1,14 @@
+import 'dart:math';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_model.dart';
 
 class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   UserModel? _currentUser;
   bool _isLoading = true;
@@ -54,16 +57,84 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  Future<String?> signInWithGoogle({required UserRole role, String? inviteCode}) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        _isLoading = false;
+        notifyListeners();
+        return null;
+      }
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      final userCredential = await _auth.signInWithCredential(credential);
+      final uid = userCredential.user!.uid;
+      final existingDoc = await _db.collection('users').doc(uid).get();
+      if (!existingDoc.exists) {
+        String? trainerId;
+        if (role == UserRole.member && inviteCode != null) {
+          trainerId = await _getTrainerIdByInviteCode(inviteCode);
+          if (trainerId == null) {
+            await _auth.signOut();
+            _isLoading = false;
+            notifyListeners();
+            return 'Geçersiz davet kodu.';
+          }
+        }
+        final newUser = UserModel(
+          id: uid,
+          name: userCredential.user!.displayName ?? googleUser.email,
+          email: googleUser.email,
+          role: role,
+          trainerId: trainerId,
+          inviteCode: role == UserRole.trainer ? _generateInviteCode() : null,
+          createdAt: DateTime.now(),
+        );
+        await _db.collection('users').doc(uid).set(newUser.toMap());
+      }
+      return null;
+    } on FirebaseAuthException catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      return _authErrorMessage(e.code);
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      return 'Bir hata oluştu.';
+    }
+  }
+
   Future<String?> register({
     required String email,
     required String password,
     required String name,
     required UserRole role,
-    String? trainerId,
+    String? inviteCode,
   }) async {
     try {
       _isLoading = true;
       notifyListeners();
+
+      String? trainerId;
+      if (role == UserRole.member) {
+        if (inviteCode == null || inviteCode.isEmpty) {
+          _isLoading = false;
+          notifyListeners();
+          return 'Davet kodu gerekli.';
+        }
+        trainerId = await _getTrainerIdByInviteCode(inviteCode);
+        if (trainerId == null) {
+          _isLoading = false;
+          notifyListeners();
+          return 'Geçersiz davet kodu. Eğitmeninden tekrar iste.';
+        }
+      }
+
       final credential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
@@ -74,6 +145,7 @@ class AuthService extends ChangeNotifier {
         email: email,
         role: role,
         trainerId: trainerId,
+        inviteCode: role == UserRole.trainer ? _generateInviteCode() : null,
         createdAt: DateTime.now(),
       );
       await _db.collection('users').doc(user.id).set(user.toMap());
@@ -85,7 +157,37 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  // Davet koduna göre trainer ID bul
+  Future<String?> _getTrainerIdByInviteCode(String code) async {
+    final snap = await _db
+        .collection('users')
+        .where('inviteCode', isEqualTo: code.trim().toUpperCase())
+        .where('role', isEqualTo: 'trainer')
+        .limit(1)
+        .get();
+    if (snap.docs.isEmpty) return null;
+    return snap.docs.first.id;
+  }
+
+  // Eğitmen için benzersiz davet kodu üret
+  String _generateInviteCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    final rand = Random.secure();
+    final code = List.generate(5, (_) => chars[rand.nextInt(chars.length)]).join();
+    return 'FIT-$code';
+  }
+
+  Future<String?> regenerateInviteCode() async {
+    if (_currentUser == null || !_currentUser!.isTrainer) return 'Yetkisiz işlem.';
+    final newCode = _generateInviteCode();
+    await _db.collection('users').doc(_currentUser!.id).update({'inviteCode': newCode});
+    _currentUser = _currentUser!.copyWith(inviteCode: newCode);
+    notifyListeners();
+    return null;
+  }
+
   Future<void> signOut() async {
+    await _googleSignIn.signOut();
     await _auth.signOut();
     _currentUser = null;
     notifyListeners();

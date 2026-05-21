@@ -146,26 +146,250 @@ class DemoApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       themeMode: ThemeMode.dark,
-      home: const _DemoSwitcher(),
+      home: const _DemoAuthWrapper(),
+    );
+  }
+}
+
+// ─── Demo Auth Wrapper ────────────────────────────────────────────────────────
+
+class _DemoAuthWrapper extends StatefulWidget {
+  const _DemoAuthWrapper();
+  @override
+  State<_DemoAuthWrapper> createState() => _DemoAuthWrapperState();
+}
+
+class _DemoAuthWrapperState extends State<_DemoAuthWrapper> {
+  // null = giriş ekranı, 'trainer' = eğitmen, 'member' = üye
+  String? _loggedInAs;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loggedInAs == null) {
+      return _DemoLoginScreen(
+        onLogin: (role) => setState(() => _loggedInAs = role),
+      );
+    }
+    return _DemoSwitcher(initialRole: _loggedInAs!);
+  }
+}
+
+class _DemoLoginScreen extends StatefulWidget {
+  final void Function(String role) onLogin;
+  const _DemoLoginScreen({required this.onLogin});
+  @override
+  State<_DemoLoginScreen> createState() => _DemoLoginScreenState();
+}
+
+class _DemoLoginScreenState extends State<_DemoLoginScreen> {
+  final _emailCtrl = TextEditingController();
+  final _passCtrl = TextEditingController();
+  bool _passVisible = false;
+  bool _showRegister = false;
+
+  @override
+  void dispose() { _emailCtrl.dispose(); _passCtrl.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) {
+    return _showRegister
+        ? _DemoRegisterScreen(onRegister: widget.onLogin, onBack: () => setState(() => _showRegister = false))
+        : Scaffold(
+            body: SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const SizedBox(height: 48),
+                  Row(children: [
+                    Container(width: 48, height: 48, decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.fitness_center, color: Colors.black, size: 28)),
+                    const SizedBox(width: 12),
+                    const Text('FitCoach', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                  ]),
+                  const SizedBox(height: 48),
+                  const Text('Hoş Geldin!', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  const Text('Hesabına giriş yap', style: TextStyle(color: AppColors.textSecondary, fontSize: 15)),
+                  const SizedBox(height: 40),
+                  TextField(controller: _emailCtrl, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'E-posta', prefixIcon: Icon(Icons.email_outlined))),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _passCtrl,
+                    obscureText: !_passVisible,
+                    decoration: InputDecoration(
+                      labelText: 'Şifre',
+                      prefixIcon: const Icon(Icons.lock_outlined),
+                      suffixIcon: IconButton(icon: Icon(_passVisible ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _passVisible = !_passVisible)),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity, height: 52,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        // Demo: email ile rol belirle
+                        final email = _emailCtrl.text.trim().toLowerCase();
+                        widget.onLogin(email.contains('trainer') || email.isEmpty ? 'trainer' : 'member');
+                      },
+                      child: const Text('Giriş Yap'),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    const Text('Hesabın yok mu? ', style: TextStyle(color: AppColors.textSecondary)),
+                    GestureDetector(
+                      onTap: () => setState(() => _showRegister = true),
+                      child: const Text('Kayıt Ol', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
+                    ),
+                  ]),
+                ]),
+              ),
+            ),
+          );
+  }
+}
+
+class _DemoRegisterScreen extends StatefulWidget {
+  final void Function(String role) onRegister;
+  final VoidCallback onBack;
+  const _DemoRegisterScreen({required this.onRegister, required this.onBack});
+  @override
+  State<_DemoRegisterScreen> createState() => _DemoRegisterScreenState();
+}
+
+class _DemoRegisterScreenState extends State<_DemoRegisterScreen> {
+  final _nameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _passCtrl = TextEditingController();
+  final _codeCtrl = TextEditingController();
+  String _role = 'member';
+  bool _passVisible = false;
+  String? _codeError;
+
+  @override
+  void dispose() { for (final c in [_nameCtrl, _emailCtrl, _passCtrl, _codeCtrl]) c.dispose(); super.dispose(); }
+
+  void _register() {
+    if (_role == 'member') {
+      final code = _codeCtrl.text.trim().toUpperCase();
+      if (code != _trainerInviteCode) {
+        setState(() => _codeError = 'Geçersiz davet kodu. Eğitmenden tekrar iste.');
+        return;
+      }
+    }
+    widget.onRegister(_role);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Kayıt Ol'), leading: BackButton(onPressed: widget.onBack)),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Hesap Oluştur', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            const Text('Rolünü seç ve bilgilerini gir', style: TextStyle(color: AppColors.textSecondary)),
+            const SizedBox(height: 28),
+            // Rol seçici
+            const Text('Rolünüz', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
+            const SizedBox(height: 12),
+            Row(children: [
+              Expanded(child: _RoleCard(title: 'Üye', subtitle: 'Görevlerimi takip et', icon: Icons.person, selected: _role == 'member', onTap: () => setState(() => _role = 'member'))),
+              const SizedBox(width: 12),
+              Expanded(child: _RoleCard(title: 'Trainer', subtitle: 'Üyelerimi yönet', icon: Icons.sports, selected: _role == 'trainer', onTap: () => setState(() => _role = 'trainer'))),
+            ]),
+            const SizedBox(height: 24),
+            TextField(controller: _nameCtrl, decoration: const InputDecoration(labelText: 'Ad Soyad', prefixIcon: Icon(Icons.person_outlined))),
+            const SizedBox(height: 16),
+            TextField(controller: _emailCtrl, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'E-posta', prefixIcon: Icon(Icons.email_outlined))),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _passCtrl, obscureText: !_passVisible,
+              decoration: InputDecoration(
+                labelText: 'Şifre', prefixIcon: const Icon(Icons.lock_outlined),
+                suffixIcon: IconButton(icon: Icon(_passVisible ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _passVisible = !_passVisible)),
+              ),
+            ),
+            if (_role == 'member') ...[
+              const SizedBox(height: 16),
+              TextField(
+                controller: _codeCtrl,
+                textCapitalization: TextCapitalization.characters,
+                onChanged: (_) => setState(() => _codeError = null),
+                decoration: InputDecoration(
+                  labelText: 'Eğitmen Davet Kodu',
+                  prefixIcon: const Icon(Icons.qr_code_outlined),
+                  hintText: 'FIT-XXXXX',
+                  errorText: _codeError,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text('Eğitmeninizden davet kodunu isteyin.', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+            ],
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity, height: 52,
+              child: ElevatedButton(onPressed: _register, child: const Text('Kayıt Ol')),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+class _RoleCard extends StatelessWidget {
+  final String title, subtitle;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+  const _RoleCard({required this.title, required this.subtitle, required this.icon, required this.selected, required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primary.withOpacity(0.1) : AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: selected ? AppColors.primary : AppColors.cardBorder, width: selected ? 2 : 1),
+        ),
+        child: Column(children: [
+          Icon(icon, color: selected ? AppColors.primary : AppColors.textSecondary, size: 32),
+          const SizedBox(height: 8),
+          Text(title, style: TextStyle(color: selected ? AppColors.primary : AppColors.textPrimary, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 4),
+          Text(subtitle, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11), textAlign: TextAlign.center),
+        ]),
+      ),
     );
   }
 }
 
 class _DemoSwitcher extends StatefulWidget {
-  const _DemoSwitcher();
+  final String initialRole;
+  const _DemoSwitcher({this.initialRole = 'trainer'});
   @override
   State<_DemoSwitcher> createState() => _DemoSwitcherState();
 }
 
 class _DemoSwitcherState extends State<_DemoSwitcher> {
-  bool _isTrainer = true;
+  late bool _isTrainer = widget.initialRole == 'trainer';
+  late bool _memberJoined = widget.initialRole == 'member';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          _isTrainer ? const _TrainerDemo() : const _MemberDemo(memberId: 'm1', memberName: 'Ayşe'),
+          _isTrainer
+              ? const _TrainerDemo()
+              : _memberJoined
+                  ? const _MemberDemo(memberId: 'm1', memberName: 'Ayşe')
+                  : _MemberJoinScreen(onJoined: () => setState(() => _memberJoined = true)),
           Positioned(
             bottom: 90,
             right: 16,
@@ -177,11 +401,89 @@ class _DemoSwitcherState extends State<_DemoSwitcher> {
               ),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 _SwitchBtn(label: 'Trainer', icon: Icons.sports, selected: _isTrainer, onTap: () => setState(() => _isTrainer = true)),
-                _SwitchBtn(label: 'Üye', icon: Icons.person, selected: !_isTrainer, onTap: () => setState(() => _isTrainer = false)),
+                _SwitchBtn(label: 'Üye', icon: Icons.person, selected: !_isTrainer, onTap: () => setState(() { _isTrainer = false; _memberJoined = false; })),
               ]),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _MemberJoinScreen extends StatefulWidget {
+  final VoidCallback onJoined;
+  const _MemberJoinScreen({required this.onJoined});
+  @override
+  State<_MemberJoinScreen> createState() => _MemberJoinScreenState();
+}
+
+class _MemberJoinScreenState extends State<_MemberJoinScreen> {
+  final _codeCtrl = TextEditingController();
+  bool _error = false;
+
+  @override
+  void dispose() { _codeCtrl.dispose(); super.dispose(); }
+
+  void _join() {
+    final entered = _codeCtrl.text.trim().toUpperCase();
+    if (entered == _trainerInviteCode) {
+      widget.onJoined();
+    } else {
+      setState(() => _error = true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 64, height: 64,
+                decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.15), borderRadius: BorderRadius.circular(16)),
+                child: const Icon(Icons.fitness_center, color: AppColors.primary, size: 32),
+              ),
+              const SizedBox(height: 24),
+              const Text('Eğitmenine Bağlan', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              const Text('Eğitmeninin sana verdiği davet kodunu gir.', style: TextStyle(color: AppColors.textSecondary, fontSize: 15)),
+              const SizedBox(height: 32),
+              TextField(
+                controller: _codeCtrl,
+                textCapitalization: TextCapitalization.characters,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 6),
+                onChanged: (_) => setState(() => _error = false),
+                onSubmitted: (_) => _join(),
+                decoration: InputDecoration(
+                  labelText: 'Davet Kodu',
+                  hintText: 'FIT-XXXXX',
+                  errorText: _error ? 'Geçersiz kod. Eğitmenden tekrar iste.' : null,
+                  errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.error, width: 2)),
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _join,
+                  child: const Text('Katıl'),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Center(
+                child: Text('Demo için kod: $_trainerInviteCode', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -213,6 +515,9 @@ class _SwitchBtn extends StatelessWidget {
     );
   }
 }
+
+// Eğitmenin davet kodu (demo)
+const _trainerInviteCode = 'FIT-HND7';
 
 // ─── Trainer Demo ─────────────────────────────────────────────────────────────
 
@@ -247,7 +552,9 @@ class _TrainerDemoState extends State<_TrainerDemo> {
               ])
             : _tab == 1
                 ? const Text('Görevler')
-                : const Text('Ölçümler'),
+                : _tab == 2
+                    ? const Text('Ölçümler')
+                    : const Text('Profil'),
         actions: [
           Container(
             margin: const EdgeInsets.only(right: 8),
@@ -263,6 +570,7 @@ class _TrainerDemoState extends State<_TrainerDemo> {
           _MembersTab(tasks: _tasks),
           _TasksTab(tasks: _tasks, onChanged: _rebuild),
           const _TrainerMeasurementsTab(),
+          const _TrainerProfileTab(),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -272,6 +580,7 @@ class _TrainerDemoState extends State<_TrainerDemo> {
           BottomNavigationBarItem(icon: Icon(Icons.people_outlined), activeIcon: Icon(Icons.people), label: 'Üyeler'),
           BottomNavigationBarItem(icon: Icon(Icons.task_outlined), activeIcon: Icon(Icons.task), label: 'Görevler'),
           BottomNavigationBarItem(icon: Icon(Icons.monitor_weight_outlined), activeIcon: Icon(Icons.monitor_weight), label: 'Ölçümler'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outlined), activeIcon: Icon(Icons.person), label: 'Profil'),
         ],
       ),
     );
@@ -1120,6 +1429,81 @@ class _MemberTodayTab extends StatelessWidget {
               );
             }),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Trainer Profile Tab ──────────────────────────────────────────────────────
+
+class _TrainerProfileTab extends StatelessWidget {
+  const _TrainerProfileTab();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        const SizedBox(height: 16),
+        Center(
+          child: Container(
+            width: 80, height: 80,
+            decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.15), shape: BoxShape.circle, border: Border.all(color: AppColors.primary, width: 2)),
+            child: const Icon(Icons.person, size: 44, color: AppColors.primary),
+          ),
+        ),
+        const SizedBox(height: 12),
+        const Center(child: Text('Hande Nur Coşkun', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+        const Center(child: Text('Kişisel Antrenör', style: TextStyle(color: AppColors.textSecondary, fontSize: 13))),
+        const SizedBox(height: 32),
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.cardBorder)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Row(children: [
+              Icon(Icons.qr_code, color: AppColors.primary, size: 20),
+              SizedBox(width: 8),
+              Text('Davet Kodu', style: TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w500)),
+            ]),
+            const SizedBox(height: 16),
+            Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+                decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.primary.withOpacity(0.4))),
+                child: const Text(_trainerInviteCode, style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.primary, letterSpacing: 6)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Kod kopyalandı! Üyene WhatsApp\'tan gönder.'), backgroundColor: AppColors.primary, behavior: SnackBarBehavior.floating),
+                  );
+                },
+                icon: const Icon(Icons.copy, size: 16),
+                label: const Text('Kodu Kopyala'),
+                style: OutlinedButton.styleFrom(foregroundColor: AppColors.primary, side: const BorderSide(color: AppColors.primary)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text('Üyelerine bu kodu gönder. Kayıt olurken bu kodu girince otomatik sana bağlanırlar.', style: TextStyle(color: AppColors.textSecondary, fontSize: 12), textAlign: TextAlign.center),
+          ]),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.cardBorder)),
+          child: Row(children: [
+            Container(width: 40, height: 40, decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.people, color: AppColors.primary, size: 20)),
+            const SizedBox(width: 12),
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('${_members.length} Aktif Üye', style: const TextStyle(fontWeight: FontWeight.bold)),
+              const Text('Toplam kayıtlı üye', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+            ]),
+          ]),
         ),
       ],
     );

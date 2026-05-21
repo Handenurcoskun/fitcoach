@@ -24,7 +24,7 @@ android {
         applicationId = "com.fitcoach.fitcoach"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 23 // Firebase Auth requires min SDK 23
+        minSdk = flutter.minSdkVersion // Firebase Auth requires min SDK 23
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

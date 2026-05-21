@@ -134,15 +134,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _trainerIdController,
+                    textCapitalization: TextCapitalization.characters,
                     decoration: const InputDecoration(
-                      labelText: 'Trainer ID (opsiyonel)',
-                      prefixIcon: Icon(Icons.badge_outlined),
-                      hintText: 'Eğitmeninizin size verdiği ID',
+                      labelText: 'Eğitmen Davet Kodu',
+                      prefixIcon: Icon(Icons.qr_code_outlined),
+                      hintText: 'FIT-XXXXX',
                     ),
+                    validator: (v) =>
+                        v == null || v.trim().isEmpty ? 'Davet kodu gerekli' : null,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Eğitmeninizden Trainer ID\'yi isteyin.',
+                    'Eğitmeninizden davet kodunu isteyin.',
                     style: TextStyle(
                         color: AppColors.textSecondary, fontSize: 12),
                   ),
