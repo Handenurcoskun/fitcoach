@@ -46,25 +46,17 @@ class AuthService extends ChangeNotifier {
 
   Future<String?> signIn(String email, String password) async {
     try {
-      _isLoading = true;
-      notifyListeners();
       await _auth.signInWithEmailAndPassword(email: email, password: password);
       return null;
     } on FirebaseAuthException catch (e) {
-      _isLoading = false;
-      notifyListeners();
       return _authErrorMessage(e.code);
     }
   }
 
   Future<String?> signInWithGoogle({UserRole? role, String? inviteCode}) async {
     try {
-      _isLoading = true;
-      notifyListeners();
       final googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
-        _isLoading = false;
-        notifyListeners();
         return null;
       }
       final googleAuth = await googleUser.authentication;
@@ -78,8 +70,6 @@ class AuthService extends ChangeNotifier {
       if (!existingDoc.exists) {
         if (role == null) {
           await _auth.signOut();
-          _isLoading = false;
-          notifyListeners();
           return 'Bu Google hesabıyla kayıt bulunamadı. Kayıt Ol sayfasını kullanın.';
         }
         String? trainerId;
@@ -87,8 +77,6 @@ class AuthService extends ChangeNotifier {
           trainerId = await _getTrainerIdByInviteCode(inviteCode);
           if (trainerId == null) {
             await _auth.signOut();
-            _isLoading = false;
-            notifyListeners();
             return 'Geçersiz davet kodu.';
           }
         }
@@ -105,12 +93,8 @@ class AuthService extends ChangeNotifier {
       }
       return null;
     } on FirebaseAuthException catch (e) {
-      _isLoading = false;
-      notifyListeners();
       return _authErrorMessage(e.code);
     } catch (e) {
-      _isLoading = false;
-      notifyListeners();
       return 'Bir hata oluştu.';
     }
   }
@@ -123,28 +107,26 @@ class AuthService extends ChangeNotifier {
     String? inviteCode,
   }) async {
     try {
-      _isLoading = true;
-      notifyListeners();
-
-      String? trainerId;
-      if (role == UserRole.member) {
-        if (inviteCode == null || inviteCode.isEmpty) {
-          _isLoading = false;
-          notifyListeners();
-          return 'Davet kodu gerekli.';
-        }
-        trainerId = await _getTrainerIdByInviteCode(inviteCode);
-        if (trainerId == null) {
-          _isLoading = false;
-          notifyListeners();
-          return 'Geçersiz davet kodu. Eğitmeninden tekrar iste.';
-        }
+      if (role == UserRole.member && (inviteCode == null || inviteCode.isEmpty)) {
+        return 'Davet kodu gerekli.';
       }
 
+      // Önce Auth hesabı oluştur — Firestore okuma için kimlik doğrulaması gerekiyor
       final credential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
+
+      String? trainerId;
+      if (role == UserRole.member) {
+        trainerId = await _getTrainerIdByInviteCode(inviteCode!);
+        if (trainerId == null) {
+          await credential.user!.delete();
+          await _auth.signOut();
+          return 'Geçersiz davet kodu. Eğitmeninden tekrar iste.';
+        }
+      }
+
       final user = UserModel(
         id: credential.user!.uid,
         name: name,
@@ -157,8 +139,6 @@ class AuthService extends ChangeNotifier {
       await _db.collection('users').doc(user.id).set(user.toMap());
       return null;
     } on FirebaseAuthException catch (e) {
-      _isLoading = false;
-      notifyListeners();
       return _authErrorMessage(e.code);
     }
   }
