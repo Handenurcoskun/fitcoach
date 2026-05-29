@@ -90,11 +90,17 @@ class AuthService extends ChangeNotifier {
           createdAt: DateTime.now(),
         );
         await _db.collection('users').doc(uid).set(newUser.toMap());
+        _currentUser = newUser;
+        notifyListeners();
+      } else {
+        _currentUser = UserModel.fromMap(existingDoc.data()!, uid);
+        notifyListeners();
       }
       return null;
     } on FirebaseAuthException catch (e) {
       return _authErrorMessage(e.code);
     } catch (e) {
+      debugPrint('Google sign-in error: $e');
       return 'Bir hata oluştu.';
     }
   }
@@ -137,9 +143,14 @@ class AuthService extends ChangeNotifier {
         createdAt: DateTime.now(),
       );
       await _db.collection('users').doc(user.id).set(user.toMap());
+      _currentUser = user;
+      notifyListeners();
       return null;
     } on FirebaseAuthException catch (e) {
       return _authErrorMessage(e.code);
+    } catch (e) {
+      debugPrint('Register error: $e');
+      return 'Bir hata oluştu. Lütfen tekrar deneyin.';
     }
   }
 
@@ -186,21 +197,26 @@ class AuthService extends ChangeNotifier {
   }
 
   String _authErrorMessage(String code) {
+    debugPrint('Firebase Auth error code: $code');
     switch (code) {
       case 'user-not-found':
-        return 'Bu e-posta ile kayıtlı kullanıcı bulunamadı.';
       case 'wrong-password':
-        return 'Şifre yanlış.';
+      case 'invalid-credential':
+      case 'invalid-login-credentials':
+      case 'INVALID_LOGIN_CREDENTIALS':
+        return 'E-posta veya şifre hatalı.';
       case 'email-already-in-use':
         return 'Bu e-posta adresi zaten kullanımda.';
       case 'weak-password':
         return 'Şifre en az 6 karakter olmalıdır.';
       case 'invalid-email':
         return 'Geçersiz e-posta adresi.';
-      case 'invalid-credential':
-        return 'E-posta veya şifre hatalı.';
+      case 'too-many-requests':
+        return 'Çok fazla deneme yapıldı. Lütfen bekleyin.';
+      case 'network-request-failed':
+        return 'İnternet bağlantınızı kontrol edin.';
       default:
-        return 'Bir hata oluştu. Lütfen tekrar deneyin.';
+        return 'E-posta veya şifre hatalı.';
     }
   }
 }
