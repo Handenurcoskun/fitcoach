@@ -5,6 +5,7 @@ import '../../models/user_model.dart';
 import '../../models/task_model.dart';
 import '../../models/task_completion_model.dart';
 import '../../theme/app_theme.dart';
+import '../measurements/measurements_screen.dart';
 
 class MemberDetailScreen extends StatefulWidget {
   final UserModel member;
@@ -27,6 +28,21 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
       appBar: AppBar(
         title: Text(widget.member.name),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.assignment_outlined),
+            tooltip: 'Görev Ata',
+            onPressed: () => _showTaskAssignment(context),
+          ),
+          IconButton(
+            icon: const Icon(Icons.monitor_weight_outlined),
+            tooltip: 'Ölçümler',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => MeasurementsScreen(member: widget.member),
+              ),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.calendar_today_outlined),
             onPressed: _pickDate,
@@ -104,6 +120,20 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showTaskAssignment(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (_) => _TaskAssignmentSheet(
+        member: widget.member,
+        service: _firestoreService,
       ),
     );
   }
@@ -196,7 +226,7 @@ class _ProgressSummary extends StatelessWidget {
                   strokeWidth: 6,
                   backgroundColor: AppColors.cardBorder,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    progress == 1.0 ? AppColors.primary : Colors.orangeAccent,
+                    progress == 1.0 ? AppColors.success : Colors.orangeAccent,
                   ),
                 ),
                 Center(
@@ -250,7 +280,7 @@ class _TrainerTaskCard extends StatelessWidget {
           height: 44,
           decoration: BoxDecoration(
             color: completion.isCompleted
-                ? AppColors.primary.withOpacity(0.15)
+                ? AppColors.success.withOpacity(0.15)
                 : AppColors.surface,
             borderRadius: BorderRadius.circular(10),
           ),
@@ -270,15 +300,154 @@ class _TrainerTaskCard extends StatelessWidget {
                 : AppColors.textPrimary,
           ),
         ),
-        subtitle: task.description.isNotEmpty
-            ? Text(task.description,
-                style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 12))
-            : null,
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (task.description.isNotEmpty)
+              Text(task.description,
+                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+            if (!completion.isCompleted && completion.note != null) ...[
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.close, size: 12, color: AppColors.error),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(completion.note!,
+                          style: const TextStyle(color: AppColors.error, fontSize: 11)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
         trailing: completion.isCompleted
-            ? const Icon(Icons.check_circle, color: AppColors.primary)
-            : const Icon(Icons.radio_button_unchecked,
-                color: AppColors.textSecondary),
+            ? const Icon(Icons.check_circle, color: AppColors.success)
+            : completion.note != null
+                ? const Icon(Icons.cancel, color: AppColors.error)
+                : const Icon(Icons.radio_button_unchecked, color: AppColors.textSecondary),
+      ),
+    );
+  }
+}
+
+// ─── Task Assignment Sheet ────────────────────────────────────────────────────
+
+class _TaskAssignmentSheet extends StatelessWidget {
+  final UserModel member;
+  final FirestoreService service;
+
+  const _TaskAssignmentSheet({required this.member, required this.service});
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      maxChildSize: 0.92,
+      minChildSize: 0.4,
+      expand: false,
+      builder: (_, scrollCtrl) => Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(
+                        color: AppColors.cardBorder,
+                        borderRadius: BorderRadius.circular(2)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text('${member.name} – Görev Ataması',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                const Text('Hangi görevleri alacağını seç',
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: StreamBuilder<List<TaskModel>>(
+              stream: service.watchTasksForTrainer(member.trainerId ?? ''),
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final tasks = snap.data ?? [];
+                if (tasks.isEmpty) {
+                  return const Center(
+                    child: Text('Henüz görev oluşturulmamış.',
+                        style: TextStyle(color: AppColors.textSecondary)),
+                  );
+                }
+                return ListView.builder(
+                  controller: scrollCtrl,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: tasks.length,
+                  itemBuilder: (context, index) {
+                    final task = tasks[index];
+                    final isAssigned = task.assignedMemberIds.contains(member.id);
+                    return CheckboxListTile(
+                      value: isAssigned,
+                      activeColor: AppColors.primary,
+                      secondary: Container(
+                        width: 40, height: 40,
+                        decoration: BoxDecoration(
+                          color: isAssigned
+                              ? AppColors.primary.withOpacity(0.15)
+                              : AppColors.surface,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Center(
+                          child: Text(task.type.emoji,
+                              style: const TextStyle(fontSize: 20)),
+                        ),
+                      ),
+                      title: Text(task.title,
+                          style: const TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w600)),
+                      subtitle: task.description.isNotEmpty
+                          ? Text(task.description,
+                              style: const TextStyle(
+                                  color: AppColors.textSecondary, fontSize: 12),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis)
+                          : null,
+                      onChanged: (val) {
+                        if (val == true) {
+                          service.assignTaskToMember(task.id, member.id);
+                        } else {
+                          service.unassignTaskFromMember(task.id, member.id);
+                        }
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Tamam'),
+            ),
+          ),
+        ],
       ),
     );
   }

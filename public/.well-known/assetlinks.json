@@ -1,0 +1,11 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.fitcoach.fitcoach",
+    "sha256_cert_fingerprints": [
+      "E1:74:8B:33:1B:A6:75:84:5F:9D:48:A8:7F:12:77:9A:02:BD:CA:11:07:ED:9C:AB:09:32:55:31:80:51:58:53",
+      "66:60:4B:70:9B:EF:8C:3D:F3:5C:9E:DE:5F:E1:E4:5F:E2:E8:9E:D2:10:D2:42:CC:4B:0F:DB:44:16:22:98:A0"
+    ]
+  }
+}]

@@ -6,6 +6,7 @@ plugins {
     id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
     id("com.google.gms.google-services")
+    id("com.google.firebase.appdistribution")
 }
 
 val keyPropertiesFile = rootProject.file("key.properties")
@@ -50,6 +51,13 @@ android {
             signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             isShrinkResources = false
+        }
+        debug {
+            firebaseAppDistribution {
+                artifactType = "APK"
+                testers = "handenurcokun@gmail.com"
+                releaseNotes = "Son güncellemeler"
+            }
         }
     }
 }

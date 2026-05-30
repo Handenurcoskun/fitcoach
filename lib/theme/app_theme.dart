@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
-  static const primary = Color(0xFF00C853);
-  static const primaryDark = Color(0xFF00A846);
+  static const primary = Color(0xFFFF6B35);
+  static const primaryDark = Color(0xFFE55A28);
   static const background = Color(0xFF121212);
   static const surface = Color(0xFF1E1E1E);
   static const card = Color(0xFF252525);
   static const cardBorder = Color(0xFF333333);
   static const textPrimary = Color(0xFFFFFFFF);
   static const textSecondary = Color(0xFFAAAAAA);
+  static const success = Color(0xFF4CAF50);
   static const error = Color(0xFFCF6679);
   static const taskColors = [
     Color(0xFF00C853), // water - green

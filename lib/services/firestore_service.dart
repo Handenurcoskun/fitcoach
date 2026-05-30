@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
 import '../models/task_model.dart';
 import '../models/task_completion_model.dart';
+import '../models/measurement_model.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -47,9 +48,11 @@ class FirestoreService {
     return _db
         .collection('tasks')
         .where('assignedMemberIds', arrayContains: memberId)
-        .where('isActive', isEqualTo: true)
         .snapshots()
-        .map((s) => s.docs.map((d) => TaskModel.fromMap(d.data(), d.id)).toList());
+        .map((s) => s.docs
+            .map((d) => TaskModel.fromMap(d.data(), d.id))
+            .where((t) => t.isActive)
+            .toList());
   }
 
   Future<void> createTask(TaskModel task) async {
@@ -147,5 +150,29 @@ class FirestoreService {
         .map((s) => s.docs
             .map((d) => TaskCompletionModel.fromMap(d.data(), d.id))
             .toList());
+  }
+
+  // ─── Measurements ────────────────────────────────────────────────────────
+
+  Future<void> addMeasurement(MeasurementModel m) async {
+    await _db.collection('measurements').add(m.toMap());
+  }
+
+  Future<void> deleteMeasurement(String id) async {
+    await _db.collection('measurements').doc(id).delete();
+  }
+
+  Stream<List<MeasurementModel>> watchMeasurementsForMember(String memberId) {
+    return _db
+        .collection('measurements')
+        .where('memberId', isEqualTo: memberId)
+        .snapshots()
+        .map((s) {
+          final list = s.docs
+              .map((d) => MeasurementModel.fromMap(d.data(), d.id))
+              .toList();
+          list.sort((a, b) => b.date.compareTo(a.date));
+          return list;
+        });
   }
 }

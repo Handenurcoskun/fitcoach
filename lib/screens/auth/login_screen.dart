@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
@@ -25,6 +26,61 @@ class _LoginScreenState extends State<LoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _showForgotPassword(BuildContext context) async {
+    final controller = TextEditingController(text: _emailController.text.trim());
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Şifremi Unuttum'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.emailAddress,
+          decoration: const InputDecoration(
+            labelText: 'E-posta adresiniz',
+            prefixIcon: Icon(Icons.email_outlined),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('İptal'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final email = controller.text.trim();
+              if (email.isEmpty) return;
+              Navigator.pop(ctx);
+              try {
+                await FirebaseAuth.instance.sendPasswordResetEmail(
+                  email: email,
+                  actionCodeSettings: ActionCodeSettings(
+                    url: 'https://fitcoach-eaf71.web.app',
+                    handleCodeInApp: true,
+                    androidPackageName: 'com.fitcoach.fitcoach',
+                    androidInstallApp: false,
+                    androidMinimumVersion: '1',
+                  ),
+                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Şifre sıfırlama e-postası gönderildi.')),
+                  );
+                }
+              } catch (_) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('E-posta gönderilemedi. Adresi kontrol edin.')),
+                  );
+                }
+              }
+            },
+            child: const Text('Gönder'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _signInWithGoogle() async {
@@ -148,7 +204,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ],
-                const SizedBox(height: 32),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => _showForgotPassword(context),
+                    child: const Text('Şifremi Unuttum',
+                        style: TextStyle(color: AppColors.primary)),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: _isLoading ? null : _signIn,
                   child: _isLoading

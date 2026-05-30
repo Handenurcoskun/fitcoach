@@ -49,10 +49,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
               : null,
         );
     if (mounted) {
-      setState(() {
-        _isGoogleLoading = false;
-        _errorMessage = error;
-      });
+      if (error == null) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      } else {
+        setState(() {
+          _isGoogleLoading = false;
+          _errorMessage = error;
+        });
+      }
     }
   }
 
@@ -72,10 +76,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
               : null,
         );
     if (mounted) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = error;
-      });
+      if (error == null) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      } else {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = error;
+        });
+      }
     }
   }
 

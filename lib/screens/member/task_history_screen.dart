@@ -27,52 +27,80 @@ class _TaskHistoryScreenState extends State<TaskHistoryScreen> {
   }
 
   Future<void> _loadHistory() async {
-    final now = DateTime.now();
-    final endDate = TaskCompletionModel.dateKey(now);
-    final startDate = TaskCompletionModel.dateKey(
-        now.subtract(const Duration(days: 30)));
+    try {
+      final now = DateTime.now();
+      final endDate = TaskCompletionModel.dateKey(now);
+      final startDate = TaskCompletionModel.dateKey(
+          now.subtract(const Duration(days: 30)));
 
-    final completions =
-        await _firestoreService.getCompletionsForMemberDateRange(
-      memberId: widget.memberId,
-      startDate: startDate,
-      endDate: endDate,
-    );
+      List<TaskCompletionModel> completions = [];
+      try {
+        completions = await _firestoreService.getCompletionsForMemberDateRange(
+          memberId: widget.memberId,
+          startDate: startDate,
+          endDate: endDate,
+        );
+      } catch (_) {}
 
-    final tasks = await _firestoreService
-        .watchTasksForMember(widget.memberId)
-        .first;
+      final tasks = await _firestoreService
+          .watchTasksForMember(widget.memberId)
+          .first;
 
-    final Map<String, List<TaskCompletionModel>> byDate = {};
-    for (final c in completions) {
-      byDate.putIfAbsent(c.date, () => []).add(c);
+      final Map<String, List<TaskCompletionModel>> byDate = {};
+      for (final c in completions) {
+        byDate.putIfAbsent(c.date, () => []).add(c);
+      }
+
+      final records = <_DayRecord>[];
+      for (int i = 0; i <= 30; i++) {
+        final date = now.subtract(Duration(days: i));
+        final key = TaskCompletionModel.dateKey(date);
+        final dayCompletions = byDate[key] ?? [];
+        final completedCount = dayCompletions.where((c) => c.isCompleted).length;
+        records.add(_DayRecord(
+          date: date,
+          completedCount: completedCount,
+          totalCount: tasks.length,
+          completions: dayCompletions,
+          tasks: tasks,
+        ));
+      }
+
+      if (mounted) {
+        setState(() {
+          _records = records;
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
     }
-
-    final records = <_DayRecord>[];
-    for (int i = 0; i <= 30; i++) {
-      final date = now.subtract(Duration(days: i));
-      final key = TaskCompletionModel.dateKey(date);
-      final dayCompletions = byDate[key] ?? [];
-      final completedCount = dayCompletions.where((c) => c.isCompleted).length;
-      records.add(_DayRecord(
-        date: date,
-        completedCount: completedCount,
-        totalCount: tasks.length,
-        completions: dayCompletions,
-        tasks: tasks,
-      ));
-    }
-
-    setState(() {
-      _records = records;
-      _isLoading = false;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
+    }
+
+    final hasAnyActivity = _records.any((r) => r.totalCount > 0);
+
+    if (!hasAnyActivity) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.history, size: 64, color: AppColors.textSecondary),
+            const SizedBox(height: 16),
+            const Text('Henüz geçmiş veri yok',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            const Text('Görevleri tamamladıkça burada görünecek.',
+                style: TextStyle(color: AppColors.textSecondary),
+                textAlign: TextAlign.center),
+          ],
+        ),
+      );
     }
 
     return RefreshIndicator(
@@ -125,7 +153,7 @@ class _DayCardState extends State<_DayCard> {
     final isToday = TaskCompletionModel.dateKey(r.date) ==
         TaskCompletionModel.dateKey(DateTime.now());
     final color = progress == 1.0
-        ? AppColors.primary
+        ? AppColors.success
         : progress > 0.5
             ? Colors.orangeAccent
             : r.completedCount == 0
@@ -251,7 +279,7 @@ class _DayCardState extends State<_DayCard> {
                               ? Icons.check_circle
                               : Icons.cancel_outlined,
                           color: completion.isCompleted
-                              ? AppColors.primary
+                              ? AppColors.success
                               : AppColors.error,
                           size: 18,
                         ),

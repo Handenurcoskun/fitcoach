@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../services/auth_service.dart';
@@ -55,6 +56,7 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
         children: [
           _MembersTab(
             trainerId: trainer.id,
+            inviteCode: trainer.inviteCode ?? '',
             today: today,
             firestoreService: _firestoreService,
           ),
@@ -114,11 +116,13 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
 
 class _MembersTab extends StatelessWidget {
   final String trainerId;
+  final String inviteCode;
   final String today;
   final FirestoreService firestoreService;
 
   const _MembersTab({
     required this.trainerId,
+    required this.inviteCode,
     required this.today,
     required this.firestoreService,
   });
@@ -147,13 +151,13 @@ class _MembersTab extends StatelessWidget {
                   child: _SummaryCard(
                     members: members,
                     completions: completions,
-                    trainerId: trainerId,
+                    inviteCode: inviteCode,
                   ),
                 ),
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
                   sliver: members.isEmpty
-                      ? SliverToBoxAdapter(child: _EmptyMembers(trainerId: trainerId))
+                      ? SliverToBoxAdapter(child: _EmptyMembers(inviteCode: inviteCode))
                       : SliverList(
                           delegate: SliverChildBuilderDelegate(
                             (context, index) {
@@ -194,12 +198,12 @@ class _MembersTab extends StatelessWidget {
 class _SummaryCard extends StatelessWidget {
   final List<UserModel> members;
   final List<TaskCompletionModel> completions;
-  final String trainerId;
+  final String inviteCode;
 
   const _SummaryCard({
     required this.members,
     required this.completions,
-    required this.trainerId,
+    required this.inviteCode,
   });
 
   @override
@@ -256,12 +260,12 @@ class _SummaryCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Trainer ID: $trainerId',
+            'Davet Kodu: $inviteCode',
             style: const TextStyle(
                 color: Colors.black54, fontSize: 11),
           ),
           Text(
-            'Bu ID\'yi üyelerinizle paylaşın',
+            'Bu kodu üyelerinizle paylaşın',
             style: const TextStyle(color: Colors.black54, fontSize: 11),
           ),
         ],
@@ -317,7 +321,7 @@ class _MemberCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final progress = totalCount > 0 ? completedCount / totalCount : 0.0;
     final color = progress == 1.0
-        ? AppColors.primary
+        ? AppColors.success
         : progress > 0.5
             ? Colors.orangeAccent
             : AppColors.error;
@@ -367,9 +371,9 @@ class _MemberCard extends StatelessWidget {
 }
 
 class _EmptyMembers extends StatelessWidget {
-  final String trainerId;
+  final String inviteCode;
 
-  const _EmptyMembers({required this.trainerId});
+  const _EmptyMembers({required this.inviteCode});
 
   @override
   Widget build(BuildContext context) {
@@ -391,7 +395,7 @@ class _EmptyMembers extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Üyelerinize aşağıdaki Trainer ID\'yi verin.',
+              'Üyelerinize aşağıdaki davet kodunu verin.',
               style: TextStyle(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
@@ -404,7 +408,7 @@ class _EmptyMembers extends StatelessWidget {
                 border: Border.all(color: AppColors.primary),
               ),
               child: SelectableText(
-                trainerId,
+                inviteCode,
                 style: const TextStyle(
                     color: AppColors.primary,
                     fontFamily: 'monospace',
@@ -418,10 +422,26 @@ class _EmptyMembers extends StatelessWidget {
   }
 }
 
-class _ProfileTab extends StatelessWidget {
+class _ProfileTab extends StatefulWidget {
   final UserModel trainer;
 
   const _ProfileTab({required this.trainer});
+
+  @override
+  State<_ProfileTab> createState() => _ProfileTabState();
+}
+
+class _ProfileTabState extends State<_ProfileTab> {
+  UserModel get trainer => widget.trainer;
+  bool _copied = false;
+
+  void _copyCode(BuildContext context) {
+    Clipboard.setData(ClipboardData(text: trainer.inviteCode ?? ''));
+    setState(() => _copied = true);
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _copied = false);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -481,19 +501,31 @@ class _ProfileTab extends StatelessWidget {
                 children: [
                   const Icon(Icons.badge_outlined, color: AppColors.textSecondary),
                   const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Trainer ID',
-                          style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                      SelectableText(
-                        trainer.id,
-                        style: const TextStyle(
-                            fontFamily: 'monospace',
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w600),
-                      ),
-                    ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Davet Kodu',
+                            style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                        Text(
+                          trainer.inviteCode ?? '',
+                          style: const TextStyle(
+                              fontFamily: 'monospace',
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 18),
+                        ),
+                      ],
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => _copyCode(context),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child: _copied
+                          ? const Icon(Icons.check_circle, color: AppColors.primary, key: ValueKey('check'))
+                          : const Icon(Icons.copy_outlined, color: AppColors.textSecondary, key: ValueKey('copy')),
+                    ),
                   ),
                 ],
               ),
@@ -505,10 +537,10 @@ class _ProfileTab extends StatelessWidget {
               padding: EdgeInsets.all(8),
               child: ListTile(
                 leading: Icon(Icons.info_outline, color: AppColors.textSecondary),
-                title: Text('Bu ID\'yi Paylaşın',
+                title: Text('Davet Kodunu Paylaşın',
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                 subtitle: Text(
-                  'Üyeleriniz kayıt olurken bu ID\'yi girerek sizinle bağlanabilir.',
+                  'Üyeleriniz kayıt olurken bu kodu girerek sizinle bağlanabilir.',
                   style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
                 ),
               ),
