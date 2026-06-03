@@ -36,6 +36,12 @@ class AuthService extends ChangeNotifier {
       final doc = await _db.collection('users').doc(uid).get();
       if (doc.exists) {
         _currentUser = UserModel.fromMap(doc.data()!, doc.id);
+        // Firebase Auth'taki fotoğraf değiştiyse otomatik güncelle
+        final authPhoto = _auth.currentUser?.photoURL;
+        if (authPhoto != null && _currentUser!.photoUrl != authPhoto) {
+          await _db.collection('users').doc(uid).update({'photoUrl': authPhoto});
+          _currentUser = _currentUser!.copyWith(photoUrl: authPhoto);
+        }
       }
     } catch (e) {
       debugPrint('Error loading user data: $e');
@@ -87,6 +93,7 @@ class AuthService extends ChangeNotifier {
           role: role,
           trainerId: trainerId,
           inviteCode: role == UserRole.trainer ? _generateInviteCode() : null,
+          photoUrl: userCredential.user!.photoURL,
           createdAt: DateTime.now(),
         );
         await _db.collection('users').doc(uid).set(newUser.toMap());
@@ -94,6 +101,12 @@ class AuthService extends ChangeNotifier {
         notifyListeners();
       } else {
         _currentUser = UserModel.fromMap(existingDoc.data()!, uid);
+        // Google fotoğrafı değiştiyse güncelle
+        final googlePhoto = userCredential.user!.photoURL;
+        if (googlePhoto != null && _currentUser!.photoUrl != googlePhoto) {
+          await _db.collection('users').doc(uid).update({'photoUrl': googlePhoto});
+          _currentUser = _currentUser!.copyWith(photoUrl: googlePhoto);
+        }
         notifyListeners();
       }
       return null;

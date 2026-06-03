@@ -1,7 +1,7 @@
 name: fitcoach
 description: "FitCoach - Personal Trainer & Member Task Tracking App"
 publish_to: 'none'
-version: 1.0.0+12
+version: 1.0.1+20
 
 environment:
   sdk: ^3.11.5
@@ -38,7 +38,7 @@ dev_dependencies:
 
 flutter_launcher_icons:
   android: true
-  ios: false
+  ios: true
   image_path: "assets/icon/app_icon.png"
   adaptive_icon_background: "#0D0D0D"
   adaptive_icon_foreground: "assets/icon/app_icon.png"
