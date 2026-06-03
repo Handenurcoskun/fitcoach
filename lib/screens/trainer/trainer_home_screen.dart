@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
 import '../../models/user_model.dart';
+import '../../models/task_model.dart';
 import '../../models/task_completion_model.dart';
 import '../../theme/app_theme.dart';
 import 'task_management_screen.dart';
@@ -137,56 +138,62 @@ class _MembersTab extends StatelessWidget {
         }
         final members = membersSnap.data ?? [];
 
-        return StreamBuilder<List<TaskCompletionModel>>(
-          stream: firestoreService.watchCompletionsForTrainerMembers(
-            memberIds: members.map((m) => m.id).toList(),
-            date: today,
-          ),
-          builder: (context, completionsSnap) {
-            final completions = completionsSnap.data ?? [];
+        return StreamBuilder<List<TaskModel>>(
+          stream: firestoreService.watchTasksForTrainer(trainerId),
+          builder: (context, tasksSnap) {
+            final tasks = (tasksSnap.data ?? []).where((t) => t.isActive).toList();
+            final totalTaskCount = tasks.length;
 
-            return CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(
-                  child: _SummaryCard(
-                    members: members,
-                    completions: completions,
-                    inviteCode: inviteCode,
-                  ),
-                ),
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                  sliver: members.isEmpty
-                      ? SliverToBoxAdapter(child: _EmptyMembers(inviteCode: inviteCode))
-                      : SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              final member = members[index];
-                              final memberCompletions = completions
-                                  .where((c) => c.memberId == member.id)
-                                  .toList();
-                              final completedCount = memberCompletions
-                                  .where((c) => c.isCompleted)
-                                  .length;
-                              return _MemberCard(
-                                member: member,
-                                completedCount: completedCount,
-                                totalCount: memberCompletions.length,
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => MemberDetailScreen(
-                                      member: member,
+            return StreamBuilder<List<TaskCompletionModel>>(
+              stream: firestoreService.watchCompletionsForTrainerMembers(
+                memberIds: members.map((m) => m.id).toList(),
+                date: today,
+              ),
+              builder: (context, completionsSnap) {
+                final completions = completionsSnap.data ?? [];
+
+                return CustomScrollView(
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: _SummaryCard(
+                        members: members,
+                        completions: completions,
+                        totalTaskCount: totalTaskCount,
+                        inviteCode: inviteCode,
+                      ),
+                    ),
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                      sliver: members.isEmpty
+                          ? SliverToBoxAdapter(child: _EmptyMembers(inviteCode: inviteCode))
+                          : SliverList(
+                              delegate: SliverChildBuilderDelegate(
+                                (context, index) {
+                                  final member = members[index];
+                                  final completedCount = completions
+                                      .where((c) => c.memberId == member.id && c.isCompleted)
+                                      .length;
+                                  return _MemberCard(
+                                    member: member,
+                                    completedCount: completedCount,
+                                    totalCount: totalTaskCount,
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => MemberDetailScreen(
+                                          member: member,
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                              );
-                            },
-                            childCount: members.length,
-                          ),
-                        ),
-                ),
-              ],
+                                  );
+                                },
+                                childCount: members.length,
+                              ),
+                            ),
+                    ),
+                  ],
+                );
+              },
             );
           },
         );
@@ -198,18 +205,20 @@ class _MembersTab extends StatelessWidget {
 class _SummaryCard extends StatelessWidget {
   final List<UserModel> members;
   final List<TaskCompletionModel> completions;
+  final int totalTaskCount;
   final String inviteCode;
 
   const _SummaryCard({
     required this.members,
     required this.completions,
+    required this.totalTaskCount,
     required this.inviteCode,
   });
 
   @override
   Widget build(BuildContext context) {
     final completedToday = completions.where((c) => c.isCompleted).length;
-    final totalToday = completions.length;
+    final totalToday = members.length * totalTaskCount;
 
     return Container(
       margin: const EdgeInsets.all(16),
@@ -333,11 +342,16 @@ class _MemberCard extends StatelessWidget {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: CircleAvatar(
           backgroundColor: AppColors.primary.withOpacity(0.15),
-          child: Text(
-            member.name.isNotEmpty ? member.name[0].toUpperCase() : '?',
-            style: const TextStyle(
-                color: AppColors.primary, fontWeight: FontWeight.bold),
-          ),
+          backgroundImage: member.photoUrl != null
+              ? NetworkImage(member.photoUrl!)
+              : null,
+          child: member.photoUrl == null
+              ? Text(
+                  member.name.isNotEmpty ? member.name[0].toUpperCase() : '?',
+                  style: const TextStyle(
+                      color: AppColors.primary, fontWeight: FontWeight.bold),
+                )
+              : null,
         ),
         title: Text(
           member.name,
@@ -454,13 +468,20 @@ class _ProfileTabState extends State<_ProfileTab> {
             child: CircleAvatar(
               radius: 48,
               backgroundColor: AppColors.primary.withOpacity(0.15),
-              child: Text(
-                trainer.name.isNotEmpty ? trainer.name[0].toUpperCase() : '?',
-                style: const TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 36,
-                    fontWeight: FontWeight.bold),
-              ),
+              backgroundImage: trainer.photoUrl != null
+                  ? NetworkImage(trainer.photoUrl!)
+                  : null,
+              child: trainer.photoUrl == null
+                  ? Text(
+                      trainer.name.isNotEmpty
+                          ? trainer.name[0].toUpperCase()
+                          : '?',
+                      style: const TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 36,
+                          fontWeight: FontWeight.bold),
+                    )
+                  : null,
             ),
           ),
           const SizedBox(height: 16),

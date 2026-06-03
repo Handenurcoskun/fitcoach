@@ -3,6 +3,7 @@ import '../models/user_model.dart';
 import '../models/task_model.dart';
 import '../models/task_completion_model.dart';
 import '../models/measurement_model.dart';
+import '../models/nutrition_log_model.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -174,5 +175,33 @@ class FirestoreService {
           list.sort((a, b) => b.date.compareTo(a.date));
           return list;
         });
+  }
+
+  // ─── Nutrition Logs ───────────────────────────────────────────────────────
+
+  Future<void> addNutritionLog(NutritionLogModel log) async {
+    await _db.collection('nutrition_logs').add(log.toMap());
+  }
+
+  Future<void> updateUserPhotoUrl(String uid, String photoUrl) async {
+    await _db.collection('users').doc(uid).update({'photoUrl': photoUrl});
+  }
+
+  Future<void> deleteNutritionLog(String id) async {
+    await _db.collection('nutrition_logs').doc(id).delete();
+  }
+
+  Stream<List<NutritionLogModel>> watchNutritionLogsForMember({
+    required String memberId,
+    required String date,
+  }) {
+    return _db
+        .collection('nutrition_logs')
+        .where('memberId', isEqualTo: memberId)
+        .where('date', isEqualTo: date)
+        .snapshots()
+        .map((s) => s.docs
+            .map((d) => NutritionLogModel.fromMap(d.data(), d.id))
+            .toList());
   }
 }

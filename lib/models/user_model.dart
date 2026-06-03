@@ -9,6 +9,7 @@ class UserModel {
   final UserRole role;
   final String? trainerId;
   final String? inviteCode; // Sadece trainer için
+  final String? photoUrl;
   final DateTime createdAt;
 
   const UserModel({
@@ -18,6 +19,7 @@ class UserModel {
     required this.role,
     this.trainerId,
     this.inviteCode,
+    this.photoUrl,
     required this.createdAt,
   });
 
@@ -31,6 +33,7 @@ class UserModel {
       role: map['role'] == 'trainer' ? UserRole.trainer : UserRole.member,
       trainerId: map['trainerId'],
       inviteCode: map['inviteCode'],
+      photoUrl: map['photoUrl'] as String?,
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -42,6 +45,7 @@ class UserModel {
       'role': role == UserRole.trainer ? 'trainer' : 'member',
       'trainerId': trainerId,
       if (inviteCode != null) 'inviteCode': inviteCode,
+      if (photoUrl != null) 'photoUrl': photoUrl,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
@@ -52,6 +56,7 @@ class UserModel {
     UserRole? role,
     String? trainerId,
     String? inviteCode,
+    String? photoUrl,
   }) {
     return UserModel(
       id: id,
@@ -60,6 +65,7 @@ class UserModel {
       role: role ?? this.role,
       trainerId: trainerId ?? this.trainerId,
       inviteCode: inviteCode ?? this.inviteCode,
+      photoUrl: photoUrl ?? this.photoUrl,
       createdAt: createdAt,
     );
   }

@@ -7,6 +7,8 @@ import '../../models/task_model.dart';
 import '../../models/task_completion_model.dart';
 import '../../theme/app_theme.dart';
 import 'task_history_screen.dart';
+import 'nutrition_screen.dart';
+import 'profile_screen.dart';
 import '../measurements/measurements_screen.dart';
 
 class MemberHomeScreen extends StatefulWidget {
@@ -42,13 +44,14 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
                   ),
                 ],
               )
-            : _currentIndex == 1 ? const Text('Geçmiş') : const Text('Ölçümlerim'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => _confirmLogout(context),
-          ),
-        ],
+            : Text(_currentIndex == 1
+              ? 'Geçmiş'
+              : _currentIndex == 2
+                  ? 'Ölçümlerim'
+                  : _currentIndex == 3
+                      ? 'Beslenme'
+                      : 'Profil'),
+        actions: const [],
       ),
       body: IndexedStack(
         index: _currentIndex,
@@ -56,6 +59,8 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
           _TodayTasksTab(memberId: member.id, firestoreService: _firestoreService),
           TaskHistoryScreen(key: _historyKey, memberId: member.id),
           MeasurementsScreen(member: member, canAdd: true),
+          const NutritionScreen(),
+          const MemberProfileScreen(),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -80,35 +85,21 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
             activeIcon: Icon(Icons.monitor_weight),
             label: 'Ölçümler',
           ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.restaurant_outlined),
+            activeIcon: Icon(Icons.restaurant),
+            label: 'Beslenme',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outlined),
+            activeIcon: Icon(Icons.person),
+            label: 'Profil',
+          ),
         ],
       ),
     );
   }
 
-  void _confirmLogout(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.card,
-        title: const Text('Çıkış Yap'),
-        content: const Text('Hesabından çıkış yapmak istediğine emin misin?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('İptal'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              context.read<AuthService>().signOut();
-            },
-            child: const Text('Çıkış Yap',
-                style: TextStyle(color: AppColors.error)),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _TodayTasksTab extends StatelessWidget {
