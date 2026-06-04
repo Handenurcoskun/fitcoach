@@ -204,4 +204,9 @@ class FirestoreService {
             .map((d) => NutritionLogModel.fromMap(d.data(), d.id))
             .toList());
   }
+
+  Future<String?> getOnesignalId(String userId) async {
+    final doc = await _db.collection('users').doc(userId).get();
+    return doc.data()?['onesignalId'] as String?;
+  }
 }
