@@ -49,12 +49,15 @@ class AuthService extends ChangeNotifier {
     }
     _isLoading = false;
     notifyListeners();
+    // Her giriş/otomatik giriş sonrası OneSignal ID kaydet
+    if (_currentUser != null) {
+      OneSignalService.saveSubscriptionId(_currentUser!.id);
+    }
   }
 
   Future<String?> signIn(String email, String password) async {
     try {
-      final cred = await _auth.signInWithEmailAndPassword(email: email, password: password);
-      OneSignalService.saveSubscriptionId(cred.user!.uid);
+      await _auth.signInWithEmailAndPassword(email: email, password: password);
       return null;
     } on FirebaseAuthException catch (e) {
       return _authErrorMessage(e.code);
