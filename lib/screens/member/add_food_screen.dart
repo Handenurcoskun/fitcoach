@@ -60,7 +60,12 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
   }
 
   void _showAddSheet(FoodSearchResult food) {
-    final amountCtrl = TextEditingController(text: '100');
+    // Eğer porsiyon tanımlıysa varsayılan "1 adet", yoksa "100g"
+    final bool hasServing = food.servingGrams != null && food.servingLabel != null;
+    bool useServing = hasServing;
+    final servingCountCtrl = TextEditingController(text: '1');
+    final gramCtrl = TextEditingController(
+        text: hasServing ? food.servingGrams!.toStringAsFixed(0) : '100');
     MealType selectedMeal = widget.presetMealType ?? MealType.snack;
 
     showModalBottomSheet(
@@ -72,8 +77,15 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
       ),
       builder: (_) => StatefulBuilder(
         builder: (sheetCtx, setSheetState) {
-          final amount = double.tryParse(amountCtrl.text) ?? 100;
-          final displayCal = (food.caloriesPer100g * amount / 100).toStringAsFixed(0);
+          double gramsForCalc;
+          if (useServing && food.servingGrams != null) {
+            final count = double.tryParse(servingCountCtrl.text) ?? 1;
+            gramsForCalc = food.servingGrams! * count;
+          } else {
+            gramsForCalc = double.tryParse(gramCtrl.text) ?? 100;
+          }
+          final displayCal =
+              (food.caloriesPer100g * gramsForCalc / 100).toStringAsFixed(0);
 
           return Padding(
             padding: EdgeInsets.fromLTRB(
@@ -86,8 +98,7 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
               children: [
                 Center(
                   child: Container(
-                    width: 40,
-                    height: 4,
+                    width: 40, height: 4,
                     decoration: BoxDecoration(
                       color: AppColors.cardBorder,
                       borderRadius: BorderRadius.circular(2),
@@ -102,9 +113,7 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
                         borderRadius: BorderRadius.circular(10),
                         child: Image.network(
                           food.imageUrl!,
-                          width: 56,
-                          height: 56,
-                          fit: BoxFit.cover,
+                          width: 56, height: 56, fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                         ),
                       ),
@@ -113,17 +122,14 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            food.name,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16),
-                          ),
-                          if (food.brand.isNotEmpty)
-                            Text(
-                              food.brand,
+                          Text(food.name,
                               style: const TextStyle(
-                                  color: AppColors.textSecondary, fontSize: 13),
-                            ),
+                                  fontWeight: FontWeight.bold, fontSize: 16)),
+                          if (food.brand.isNotEmpty)
+                            Text(food.brand,
+                                style: const TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 13)),
                         ],
                       ),
                     ),
@@ -138,21 +144,50 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
                   style: const TextStyle(
                       color: AppColors.textSecondary, fontSize: 12),
                 ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: amountCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Miktar',
-                    suffixText: 'g',
-                  ),
-                  onChanged: (_) => setSheetState(() {}),
-                ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Öğün',
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                ),
+                // Adet / Gram toggle (sadece yerel yiyeceklerde porsiyon varsa)
+                if (hasServing) ...[
+                  Row(
+                    children: [
+                      _ModeBtn(
+                        label: food.servingLabel!,
+                        selected: useServing,
+                        onTap: () => setSheetState(() => useServing = true),
+                      ),
+                      const SizedBox(width: 8),
+                      _ModeBtn(
+                        label: 'Gram (g)',
+                        selected: !useServing,
+                        onTap: () => setSheetState(() => useServing = false),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (useServing && hasServing)
+                  TextField(
+                    controller: servingCountCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: 'Adet / Porsiyon',
+                      suffixText: food.servingLabel,
+                    ),
+                    onChanged: (_) => setSheetState(() {}),
+                  )
+                else
+                  TextField(
+                    controller: gramCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Miktar',
+                      suffixText: 'g',
+                    ),
+                    onChanged: (_) => setSheetState(() {}),
+                  ),
+                const SizedBox(height: 16),
+                const Text('Öğün',
+                    style: TextStyle(
+                        color: AppColors.textSecondary, fontSize: 13)),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -162,7 +197,8 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
                     return ChoiceChip(
                       label: Text('${m.emoji} ${m.label}'),
                       selected: isSelected,
-                      onSelected: (_) => setSheetState(() => selectedMeal = m),
+                      onSelected: (_) =>
+                          setSheetState(() => selectedMeal = m),
                       selectedColor: AppColors.primary.withOpacity(0.2),
                       side: BorderSide(
                         color: isSelected
@@ -182,8 +218,8 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () async {
-                      final a = double.tryParse(amountCtrl.text);
-                      if (a == null || a <= 0) return;
+                      final grams = gramsForCalc;
+                      if (grams <= 0) return;
 
                       final log = NutritionLogModel(
                         id: '',
@@ -191,11 +227,11 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
                         date: widget.date,
                         mealType: selectedMeal,
                         foodName: food.name,
-                        calories: food.caloriesPer100g * a / 100,
-                        protein: food.proteinPer100g * a / 100,
-                        carbs: food.carbsPer100g * a / 100,
-                        fat: food.fatPer100g * a / 100,
-                        amount: a,
+                        calories: food.caloriesPer100g * grams / 100,
+                        protein: food.proteinPer100g * grams / 100,
+                        carbs: food.carbsPer100g * grams / 100,
+                        fat: food.fatPer100g * grams / 100,
+                        amount: grams,
                         createdAt: DateTime.now(),
                       );
 
@@ -330,6 +366,41 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
                   ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ModeBtn extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _ModeBtn(
+      {required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppColors.primary.withOpacity(0.15)
+              : AppColors.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? AppColors.primary : AppColors.cardBorder,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? AppColors.primary : AppColors.textSecondary,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+            fontSize: 13,
+          ),
+        ),
       ),
     );
   }
