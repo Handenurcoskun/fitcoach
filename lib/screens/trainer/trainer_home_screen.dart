@@ -7,6 +7,7 @@ import '../../services/firestore_service.dart';
 import '../../models/user_model.dart';
 import '../../models/task_model.dart';
 import '../../models/task_completion_model.dart';
+import '../../models/nutrition_log_model.dart';
 import '../../theme/app_theme.dart';
 import 'task_management_screen.dart';
 import 'member_detail_screen.dart';
@@ -177,6 +178,8 @@ class _MembersTab extends StatelessWidget {
                                     member: member,
                                     completedCount: completedCount,
                                     totalCount: totalTaskCount,
+                                    today: today,
+                                    firestoreService: firestoreService,
                                     onTap: () => Navigator.push(
                                       context,
                                       MaterialPageRoute(
@@ -317,19 +320,23 @@ class _MemberCard extends StatelessWidget {
   final UserModel member;
   final int completedCount;
   final int totalCount;
+  final String today;
+  final FirestoreService firestoreService;
   final VoidCallback onTap;
 
   const _MemberCard({
     required this.member,
     required this.completedCount,
     required this.totalCount,
+    required this.today,
+    required this.firestoreService,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final progress = totalCount > 0 ? completedCount / totalCount : 0.0;
-    final color = progress == 1.0
+    final taskColor = progress == 1.0
         ? AppColors.success
         : progress > 0.5
             ? Colors.orangeAccent
@@ -337,49 +344,143 @@ class _MemberCard extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
+      child: InkWell(
         onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: CircleAvatar(
-          backgroundColor: AppColors.primary.withOpacity(0.15),
-          backgroundImage: member.photoUrl != null
-              ? NetworkImage(member.photoUrl!)
-              : null,
-          child: member.photoUrl == null
-              ? Text(
-                  member.name.isNotEmpty ? member.name[0].toUpperCase() : '?',
-                  style: const TextStyle(
-                      color: AppColors.primary, fontWeight: FontWeight.bold),
-                )
-              : null,
-        ),
-        title: Text(
-          member.name,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 6),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: progress,
-                backgroundColor: AppColors.cardBorder,
-                valueColor: AlwaysStoppedAnimation<Color>(color),
-                minHeight: 6,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: AppColors.primary.withOpacity(0.15),
+                backgroundImage: member.photoUrl != null
+                    ? NetworkImage(member.photoUrl!)
+                    : null,
+                child: member.photoUrl == null
+                    ? Text(
+                        member.name.isNotEmpty
+                            ? member.name[0].toUpperCase()
+                            : '?',
+                        style: const TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold),
+                      )
+                    : null,
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '$completedCount / $totalCount görev tamamlandı',
-              style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 12),
-            ),
-          ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(member.name,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 15)),
+                    const SizedBox(height: 6),
+                    // Görev progress
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        backgroundColor: AppColors.cardBorder,
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(taskColor),
+                        minHeight: 5,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        Icon(Icons.task_alt,
+                            size: 12, color: taskColor),
+                        const SizedBox(width: 4),
+                        Text(
+                          '$completedCount / $totalCount görev',
+                          style: TextStyle(
+                              color: taskColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    // Beslenme özeti
+                    StreamBuilder<List<NutritionLogModel>>(
+                      stream: firestoreService.watchNutritionLogsForMember(
+                        memberId: member.id,
+                        date: today,
+                      ),
+                      builder: (context, snap) {
+                        final logs = snap.data ?? [];
+                        if (logs.isEmpty) {
+                          return const Row(
+                            children: [
+                              Icon(Icons.restaurant_outlined,
+                                  size: 12,
+                                  color: AppColors.textSecondary),
+                              SizedBox(width: 4),
+                              Text('Beslenme girilmedi',
+                                  style: TextStyle(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 11)),
+                            ],
+                          );
+                        }
+                        final cal =
+                            logs.fold(0.0, (s, l) => s + l.calories);
+                        final p =
+                            logs.fold(0.0, (s, l) => s + l.protein);
+                        final c = logs.fold(0.0, (s, l) => s + l.carbs);
+                        final f = logs.fold(0.0, (s, l) => s + l.fat);
+                        return Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          children: [
+                            _MiniChip(
+                                '🔥 ${cal.toStringAsFixed(0)} kcal',
+                                AppColors.primary),
+                            _MiniChip('P ${p.toStringAsFixed(0)}g',
+                                const Color(0xFF2979FF)),
+                            _MiniChip('K ${c.toStringAsFixed(0)}g',
+                                const Color(0xFFFFAB00)),
+                            _MiniChip('Y ${f.toStringAsFixed(0)}g',
+                                AppColors.error),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right,
+                  color: AppColors.textSecondary, size: 18),
+            ],
+          ),
         ),
-        trailing: const Icon(Icons.chevron_right, color: AppColors.textSecondary),
       ),
+    );
+  }
+}
+
+class _MiniChip extends StatelessWidget {
+  final String text;
+  final Color color;
+  const _MiniChip(this.text, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(text,
+          style: TextStyle(
+              fontSize: 10,
+              color: color,
+              fontWeight: FontWeight.w600)),
     );
   }
 }
