@@ -7,6 +7,8 @@ import '../../models/task_model.dart';
 import '../../models/task_completion_model.dart';
 import '../../theme/app_theme.dart';
 import 'task_history_screen.dart';
+import 'nutrition_screen.dart';
+import 'profile_screen.dart';
 import '../measurements/measurements_screen.dart';
 import 'profile_screen.dart';
 
@@ -43,11 +45,14 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
                   ),
                 ],
               )
-            : _currentIndex == 1
-                ? const Text('Geçmiş')
-                : _currentIndex == 2
-                    ? const Text('Ölçümlerim')
-                    : const Text('Profil'),
+            : Text(_currentIndex == 1
+              ? 'Geçmiş'
+              : _currentIndex == 2
+                  ? 'Ölçümlerim'
+                  : _currentIndex == 3
+                      ? 'Beslenme'
+                      : 'Profil'),
+        actions: const [],
       ),
       body: IndexedStack(
         index: _currentIndex,
@@ -55,6 +60,7 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
           _TodayTasksTab(memberId: member.id, firestoreService: _firestoreService),
           TaskHistoryScreen(key: _historyKey, memberId: member.id),
           MeasurementsScreen(member: member, canAdd: true),
+          const NutritionScreen(),
           const MemberProfileScreen(),
         ],
       ),
@@ -79,6 +85,11 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
             icon: Icon(Icons.monitor_weight_outlined),
             activeIcon: Icon(Icons.monitor_weight),
             label: 'Ölçümler',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.restaurant_outlined),
+            activeIcon: Icon(Icons.restaurant),
+            label: 'Beslenme',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outlined),
