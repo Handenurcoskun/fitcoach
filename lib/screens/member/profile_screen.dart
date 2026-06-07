@@ -77,6 +77,17 @@ class MemberProfileScreen extends StatelessWidget {
               onPressed: () => _confirmLogout(context),
             ),
           ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: TextButton(
+              onPressed: () => _confirmDeleteAccount(context),
+              child: const Text(
+                'Hesabı Sil',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -101,6 +112,38 @@ class MemberProfileScreen extends StatelessWidget {
               context.read<AuthService>().signOut();
             },
             child: const Text('Çıkış Yap',
+                style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteAccount(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.card,
+        title: const Text('Hesabı Sil'),
+        content: const Text(
+          'Hesabın ve tüm verilerin kalıcı olarak silinecek. Bu işlem geri alınamaz.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('İptal'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final error = await context.read<AuthService>().deleteAccount();
+              if (error != null && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(error), backgroundColor: AppColors.error),
+                );
+              }
+            },
+            child: const Text('Sil',
                 style: TextStyle(color: AppColors.error)),
           ),
         ],

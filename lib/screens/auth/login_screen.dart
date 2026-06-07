@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
 import 'register_screen.dart';
@@ -89,6 +90,20 @@ class _LoginScreenState extends State<LoginScreen> {
       _errorMessage = null;
     });
     final error = await context.read<AuthService>().signInWithGoogle();
+    if (mounted) {
+      setState(() {
+        _isGoogleLoading = false;
+        _errorMessage = error;
+      });
+    }
+  }
+
+  Future<void> _signInWithApple() async {
+    setState(() {
+      _isGoogleLoading = true;
+      _errorMessage = null;
+    });
+    final error = await context.read<AuthService>().signInWithApple();
     if (mounted) {
       setState(() {
         _isGoogleLoading = false;
@@ -257,6 +272,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     side: const BorderSide(color: AppColors.cardBorder),
                     foregroundColor: AppColors.textPrimary,
                   ),
+                ),
+                const SizedBox(height: 12),
+                SignInWithAppleButton(
+                  onPressed: (_isLoading || _isGoogleLoading) ? () {} : _signInWithApple,
+                  style: SignInWithAppleButtonStyle.black,
+                  height: 52,
                 ),
                 const SizedBox(height: 24),
                 Row(

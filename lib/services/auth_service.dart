@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../models/user_model.dart';
 
 class AuthService extends ChangeNotifier {
@@ -196,11 +197,83 @@ class AuthService extends ChangeNotifier {
     return null;
   }
 
+  Future<String?> signInWithApple() async {
+    try {
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+      final oauthCredential = OAuthProvider('apple.com').credential(
+        idToken: appleCredential.identityToken,
+        accessToken: appleCredential.authorizationCode,
+      );
+      final userCredential = await _auth.signInWithCredential(oauthCredential);
+      final uid = userCredential.user!.uid;
+      final existingDoc = await _db.collection('users').doc(uid).get();
+      if (!existingDoc.exists) {
+        // Apple bazen ismi ilk girişte verir, sonrakilerde vermez
+        final displayName = [
+          appleCredential.givenName,
+          appleCredential.familyName,
+        ].where((n) => n != null && n.isNotEmpty).join(' ');
+        final name = displayName.isNotEmpty
+            ? displayName
+            : userCredential.user!.email ?? 'Kullanıcı';
+        final newUser = UserModel(
+          id: uid,
+          name: name,
+          email: userCredential.user!.email ?? appleCredential.email ?? '',
+          role: UserRole.trainer,
+          inviteCode: _generateInviteCode(),
+          createdAt: DateTime.now(),
+        );
+        await _db.collection('users').doc(uid).set(newUser.toMap());
+        _currentUser = newUser;
+        notifyListeners();
+      } else {
+        _currentUser = UserModel.fromMap(existingDoc.data()!, uid);
+        notifyListeners();
+      }
+      return null;
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code == AuthorizationErrorCode.canceled) return null;
+      return 'Apple ile giriş başarısız.';
+    } catch (e) {
+      debugPrint('Apple sign-in error: $e');
+      return 'Bir hata oluştu.';
+    }
+  }
+
   Future<void> signOut() async {
     await _googleSignIn.signOut();
     await _auth.signOut();
     _currentUser = null;
     notifyListeners();
+  }
+
+  Future<String?> deleteAccount() async {
+    final user = _auth.currentUser;
+    if (user == null) return 'Oturum bulunamadı.';
+    try {
+      final uid = user.uid;
+      // Firestore kullanıcı verisini sil
+      await _db.collection('users').doc(uid).delete();
+      // Firebase Auth hesabını sil
+      await user.delete();
+      await _googleSignIn.signOut();
+      _currentUser = null;
+      notifyListeners();
+      return null;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        return 'Güvenlik için lütfen çıkış yapıp tekrar giriş yapın, ardından hesabı silin.';
+      }
+      return 'Bir hata oluştu: ${e.message}';
+    } catch (e) {
+      return 'Bir hata oluştu.';
+    }
   }
 
   Future<void> refreshCurrentUser() async {
