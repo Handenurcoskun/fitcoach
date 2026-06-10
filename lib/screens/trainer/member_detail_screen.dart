@@ -4,6 +4,7 @@ import '../../services/firestore_service.dart';
 import '../../models/user_model.dart';
 import '../../models/task_model.dart';
 import '../../models/task_completion_model.dart';
+import '../../models/nutrition_log_model.dart';
 import '../../theme/app_theme.dart';
 import '../measurements/measurements_screen.dart';
 
@@ -88,6 +89,11 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                         _ProgressSummary(
                           completedCount: completedCount,
                           totalCount: tasks.length,
+                        ),
+                        _NutritionSummaryCard(
+                          memberId: widget.member.id,
+                          dateKey: _dateKey,
+                          firestoreService: _firestoreService,
                         ),
                         Expanded(
                           child: ListView.builder(
@@ -448,6 +454,172 @@ class _TaskAssignmentSheet extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _NutritionSummaryCard extends StatefulWidget {
+  final String memberId;
+  final String dateKey;
+  final FirestoreService firestoreService;
+
+  const _NutritionSummaryCard({
+    required this.memberId,
+    required this.dateKey,
+    required this.firestoreService,
+  });
+
+  @override
+  State<_NutritionSummaryCard> createState() => _NutritionSummaryCardState();
+}
+
+class _NutritionSummaryCardState extends State<_NutritionSummaryCard> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<NutritionLogModel>>(
+      stream: widget.firestoreService.watchNutritionLogsForMember(
+        memberId: widget.memberId,
+        date: widget.dateKey,
+      ),
+      builder: (context, snap) {
+        final logs = snap.data ?? [];
+        if (logs.isEmpty) return const SizedBox.shrink();
+
+        final totalCal = logs.fold(0.0, (s, l) => s + l.calories);
+        final totalP = logs.fold(0.0, (s, l) => s + l.protein);
+        final totalC = logs.fold(0.0, (s, l) => s + l.carbs);
+        final totalF = logs.fold(0.0, (s, l) => s + l.fat);
+
+        return GestureDetector(
+          onTap: () => setState(() => _expanded = !_expanded),
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.cardBorder),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Text('🍽️', style: TextStyle(fontSize: 16)),
+                    const SizedBox(width: 8),
+                    const Text('Beslenme',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 14)),
+                    const Spacer(),
+                    Text(
+                      '${totalCal.toStringAsFixed(0)} kcal',
+                      style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      _expanded
+                          ? Icons.keyboard_arrow_up
+                          : Icons.keyboard_arrow_down,
+                      color: AppColors.textSecondary,
+                      size: 18,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    _MacroChip('P', totalP, const Color(0xFF2979FF)),
+                    const SizedBox(width: 8),
+                    _MacroChip('K', totalC, const Color(0xFFFFAB00)),
+                    const SizedBox(width: 8),
+                    _MacroChip('Y', totalF, AppColors.error),
+                  ],
+                ),
+                if (_expanded) ...[
+                  const SizedBox(height: 10),
+                  const Divider(height: 1),
+                  const SizedBox(height: 8),
+                  ...MealType.values.map((meal) {
+                    final mealLogs =
+                        logs.where((l) => l.mealType == meal).toList();
+                    if (mealLogs.isEmpty) return const SizedBox.shrink();
+                    final mealCal =
+                        mealLogs.fold(0.0, (s, l) => s + l.calories);
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text('${meal.emoji} ${meal.label}',
+                                style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600)),
+                            const Spacer(),
+                            Text('${mealCal.toStringAsFixed(0)} kcal',
+                                style: const TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 12)),
+                          ],
+                        ),
+                        ...mealLogs.map((l) => Padding(
+                              padding: const EdgeInsets.only(
+                                  left: 24, top: 2, bottom: 2),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      '${l.foodName}  ${l.amount.toStringAsFixed(0)}g',
+                                      style: const TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.textSecondary),
+                                    ),
+                                  ),
+                                  Text(
+                                    '${l.calories.toStringAsFixed(0)} kcal',
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                            )),
+                        const SizedBox(height: 6),
+                      ],
+                    );
+                  }),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MacroChip extends StatelessWidget {
+  final String label;
+  final double value;
+  final Color color;
+  const _MacroChip(this.label, this.value, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(
+        '$label: ${value.toStringAsFixed(1)}g',
+        style: TextStyle(
+            color: color, fontSize: 12, fontWeight: FontWeight.w600),
       ),
     );
   }

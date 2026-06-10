@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../models/user_model.dart';
+import 'onesignal_service.dart';
 
 class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -49,6 +50,10 @@ class AuthService extends ChangeNotifier {
     }
     _isLoading = false;
     notifyListeners();
+    // Her giriş/otomatik giriş sonrası OneSignal ID kaydet
+    if (_currentUser != null) {
+      OneSignalService.saveSubscriptionId(_currentUser!.id);
+    }
   }
 
   Future<String?> signIn(String email, String password) async {

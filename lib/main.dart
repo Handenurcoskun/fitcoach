@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'firebase_options.dart';
 import 'services/auth_service.dart';
+import 'services/onesignal_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/reset_password_screen.dart';
 import 'screens/trainer/trainer_home_screen.dart';
@@ -28,6 +29,7 @@ void main() async {
     return true;
   };
 
+  await OneSignalService.initialize();
   _initAppLinks();
   runApp(const FitCoachApp());
 }

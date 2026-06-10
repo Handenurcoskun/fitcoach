@@ -3,10 +3,13 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
+import '../../services/onesignal_service.dart';
 import '../../models/task_model.dart';
 import '../../models/task_completion_model.dart';
 import '../../theme/app_theme.dart';
 import 'task_history_screen.dart';
+import 'nutrition_screen.dart';
+import 'profile_screen.dart';
 import '../measurements/measurements_screen.dart';
 import 'profile_screen.dart';
 
@@ -43,11 +46,14 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
                   ),
                 ],
               )
-            : _currentIndex == 1
-                ? const Text('Geçmiş')
-                : _currentIndex == 2
-                    ? const Text('Ölçümlerim')
-                    : const Text('Profil'),
+            : Text(_currentIndex == 1
+              ? 'Geçmiş'
+              : _currentIndex == 2
+                  ? 'Ölçümlerim'
+                  : _currentIndex == 3
+                      ? 'Beslenme'
+                      : 'Profil'),
+        actions: const [],
       ),
       body: IndexedStack(
         index: _currentIndex,
@@ -55,6 +61,7 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
           _TodayTasksTab(memberId: member.id, firestoreService: _firestoreService),
           TaskHistoryScreen(key: _historyKey, memberId: member.id),
           MeasurementsScreen(member: member, canAdd: true),
+          const NutritionScreen(),
           const MemberProfileScreen(),
         ],
       ),
@@ -81,6 +88,11 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
             label: 'Ölçümler',
           ),
           BottomNavigationBarItem(
+            icon: Icon(Icons.restaurant_outlined),
+            activeIcon: Icon(Icons.restaurant),
+            label: 'Beslenme',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.person_outlined),
             activeIcon: Icon(Icons.person),
             label: 'Profil',
@@ -92,19 +104,73 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
 
 }
 
-class _TodayTasksTab extends StatelessWidget {
+class _TodayTasksTab extends StatefulWidget {
   final String memberId;
   final FirestoreService firestoreService;
 
   const _TodayTasksTab(
       {required this.memberId, required this.firestoreService});
 
+  @override
+  State<_TodayTasksTab> createState() => _TodayTasksTabState();
+}
+
+class _TodayTasksTabState extends State<_TodayTasksTab> {
   String get _today => TaskCompletionModel.dateKey(DateTime.now());
+  bool _notifiedToday = false;
+
+  Future<void> _handleAction({
+    required String taskId,
+    required bool isCompleted,
+    String? note,
+    required List<TaskModel> tasks,
+    required List<TaskCompletionModel> currentCompletions,
+  }) async {
+    await widget.firestoreService.setTaskCompletion(
+      taskId: taskId,
+      memberId: widget.memberId,
+      date: _today,
+      isCompleted: isCompleted,
+      note: note,
+    );
+
+    if (!isCompleted || _notifiedToday) return;
+
+    // Bu görev tamamlandıktan sonra kaç tane completed oldu?
+    final updatedCompleted = currentCompletions
+            .where((c) => c.isCompleted && c.taskId != taskId)
+            .length +
+        1;
+
+    if (updatedCompleted >= tasks.length) {
+      _notifiedToday = true;
+      final member = context.read<AuthService>().currentUser!;
+      final memberName = member.name;
+      final trainerId = member.trainerId;
+
+      // Üyeye tebrik
+      final memberOsId = await widget.firestoreService.getOnesignalId(widget.memberId);
+      if (memberOsId != null) {
+        OneSignalService.notifyMemberAllDone(memberOneSignalId: memberOsId);
+      }
+
+      // Antrenöre bildirim
+      if (trainerId != null) {
+        final trainerOsId = await widget.firestoreService.getOnesignalId(trainerId);
+        if (trainerOsId != null) {
+          OneSignalService.notifyTrainerAllTasksDone(
+            trainerOneSignalId: trainerOsId,
+            memberName: memberName,
+          );
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<TaskModel>>(
-      stream: firestoreService.watchTasksForMember(memberId),
+      stream: widget.firestoreService.watchTasksForMember(widget.memberId),
       builder: (context, tasksSnap) {
         if (tasksSnap.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -112,8 +178,8 @@ class _TodayTasksTab extends StatelessWidget {
         final tasks = tasksSnap.data ?? [];
 
         return StreamBuilder<List<TaskCompletionModel>>(
-          stream: firestoreService.watchCompletionsForMember(
-            memberId: memberId,
+          stream: widget.firestoreService.watchCompletionsForMember(
+            memberId: widget.memberId,
             date: _today,
           ),
           builder: (context, completionsSnap) {
@@ -144,7 +210,7 @@ class _TodayTasksTab extends StatelessWidget {
                           orElse: () => TaskCompletionModel(
                             id: '',
                             taskId: task.id,
-                            memberId: memberId,
+                            memberId: widget.memberId,
                             date: _today,
                             isCompleted: false,
                           ),
@@ -153,12 +219,12 @@ class _TodayTasksTab extends StatelessWidget {
                           task: task,
                           completion: completion,
                           onAction: ({required bool isCompleted, String? note}) =>
-                              firestoreService.setTaskCompletion(
+                              _handleAction(
                             taskId: task.id,
-                            memberId: memberId,
-                            date: _today,
                             isCompleted: isCompleted,
                             note: note,
+                            tasks: tasks,
+                            currentCompletions: completions,
                           ),
                         );
                       },
