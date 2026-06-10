@@ -3,24 +3,66 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FitCoach Destek</title>
+  <title>FitCoach - Destek</title>
   <style>
-    body { font-family: -apple-system, sans-serif; max-width: 600px; margin: 60px auto; padding: 20px; color: #333; }
-    h1 { color: #FF6B35; }
-    a { color: #FF6B35; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f7; color: #1d1d1f; }
+    header { background: #fff; padding: 20px 24px; border-bottom: 1px solid #e5e5ea; display: flex; align-items: center; gap: 12px; }
+    .logo { width: 40px; height: 40px; background: #FF6B35; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+    .logo span { color: #fff; font-size: 20px; }
+    header h1 { font-size: 20px; font-weight: 600; }
+    .container { max-width: 640px; margin: 0 auto; padding: 32px 20px; }
+    .card { background: #fff; border-radius: 16px; padding: 28px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    h2 { font-size: 18px; font-weight: 600; margin-bottom: 16px; color: #1d1d1f; }
+    .contact-btn { display: inline-block; background: #FF6B35; color: #fff; padding: 14px 28px; border-radius: 12px; text-decoration: none; font-weight: 600; font-size: 16px; text-align: center; width: 100%; margin-top: 8px; }
+    .contact-btn:hover { background: #e55a25; }
+    .email-text { color: #6e6e73; font-size: 14px; text-align: center; margin-top: 10px; }
+    .faq-item { padding: 16px 0; border-bottom: 1px solid #f0f0f0; }
+    .faq-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .faq-item h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+    .faq-item p { font-size: 14px; color: #6e6e73; line-height: 1.5; }
+    .badge { display: inline-block; background: #FF6B35; color: #fff; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 20px; margin-left: 8px; vertical-align: middle; }
   </style>
 </head>
 <body>
-  <h1>FitCoach Destek</h1>
-  <p>FitCoach kullanımıyla ilgili sorularınız için bizimle iletişime geçebilirsiniz.</p>
-  <h2>İletişim</h2>
-  <p>E-posta: <a href="mailto:handenurcoskun@icloud.com">handenurcoskun@icloud.com</a></p>
-  <h2>Sıkça Sorulan Sorular</h2>
-  <h3>Uygulamayı nasıl kullanırım?</h3>
-  <p>Antrenör olarak kayıt olun, üyelerinize davet kodunuzu gönderin. Üyeler kodu girerek sizinle bağlanır ve günlük görevlerini takip edebilir.</p>
-  <h3>Davet kodumu nasıl paylaşırım?</h3>
-  <p>Profil ekranında davet kodunuzu görebilir ve kopyalayabilirsiniz.</p>
-  <h3>Hesabımı nasıl silerim?</h3>
-  <p>Profil → Hesabı Sil seçeneğiyle hesabınızı kalıcı olarak silebilirsiniz.</p>
+  <header>
+    <div class="logo"><span>💪</span></div>
+    <h1>FitCoach Destek</h1>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <h2>📬 Bize Ulaşın</h2>
+      <p style="color:#6e6e73; font-size:15px; margin-bottom:16px;">Sorularınız, önerileriniz veya sorunlarınız için 24 saat içinde yanıt veriyoruz.</p>
+      <a class="contact-btn" href="mailto:handenurcoskun@icloud.com?subject=FitCoach%20Destek">E-posta Gönder</a>
+      <p class="email-text">handenurcoskun@icloud.com</p>
+    </div>
+
+    <div class="card">
+      <h2>❓ Sık Sorulan Sorular</h2>
+      <div class="faq-item">
+        <h3>Uygulamayı nasıl kullanırım?</h3>
+        <p>Antrenör olarak kayıt olun, davet kodunuzu üyelerinizle paylaşın. Üyeler kodu girerek sizinle bağlanır ve günlük görevlerini takip edebilir.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Davet kodumu nasıl bulabilirim?</h3>
+        <p>Profil ekranında davet kodunuzu görebilir, kopyalayıp paylaşabilirsiniz.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Sign in with Apple ile nasıl giriş yaparım?</h3>
+        <p>Giriş ekranındaki "Apple ile Giriş Yap" butonuna dokunarak Face ID veya Touch ID ile hızlıca giriş yapabilirsiniz.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Hesabımı nasıl silebilirim? <span class="badge">Önemli</span></h3>
+        <p>Profil ekranı → "Hesabı Sil" butonuna dokunun → Onay verin. Tüm verileriniz kalıcı olarak silinir.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Şifremi unuttum, ne yapmalıyım?</h3>
+        <p>Giriş ekranındaki "Şifremi Unuttum" linkine tıklayın. E-posta adresinize sıfırlama bağlantısı gönderilecektir.</p>
+      </div>
+    </div>
+
+    <p style="text-align:center; color:#8e8e93; font-size:13px; padding: 8px 0 24px;">FitCoach © 2026 · <a href="mailto:handenurcoskun@icloud.com" style="color:#FF6B35; text-decoration:none;">İletişim</a></p>
+  </div>
 </body>
 </html>
