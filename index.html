@@ -8,25 +8,30 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f7; color: #1d1d1f; }
     header { background: #fff; padding: 20px 24px; border-bottom: 1px solid #e5e5ea; display: flex; align-items: center; gap: 12px; }
-    .logo { width: 40px; height: 40px; background: #FF6B35; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
-    .logo span { color: #fff; font-size: 20px; }
-    header h1 { font-size: 20px; font-weight: 600; }
+    .logo { width: 44px; height: 44px; background: #FF6B35; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .logo svg { width: 26px; height: 26px; fill: #fff; }
+    header h1 { font-size: 20px; font-weight: 600; color: #1d1d1f; }
     .container { max-width: 640px; margin: 0 auto; padding: 32px 20px; }
     .card { background: #fff; border-radius: 16px; padding: 28px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
     h2 { font-size: 18px; font-weight: 600; margin-bottom: 16px; color: #1d1d1f; }
-    .contact-btn { display: inline-block; background: #FF6B35; color: #fff; padding: 14px 28px; border-radius: 12px; text-decoration: none; font-weight: 600; font-size: 16px; text-align: center; width: 100%; margin-top: 8px; }
+    .contact-btn { display: block; background: #FF6B35; color: #fff; padding: 14px 28px; border-radius: 12px; text-decoration: none; font-weight: 600; font-size: 16px; text-align: center; margin-top: 8px; }
     .contact-btn:hover { background: #e55a25; }
     .email-text { color: #6e6e73; font-size: 14px; text-align: center; margin-top: 10px; }
     .faq-item { padding: 16px 0; border-bottom: 1px solid #f0f0f0; }
     .faq-item:last-child { border-bottom: none; padding-bottom: 0; }
-    .faq-item h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+    .faq-item h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; color: #1d1d1f; }
     .faq-item p { font-size: 14px; color: #6e6e73; line-height: 1.5; }
-    .badge { display: inline-block; background: #FF6B35; color: #fff; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 20px; margin-left: 8px; vertical-align: middle; }
+    footer { text-align: center; color: #8e8e93; font-size: 13px; padding: 8px 0 32px; }
+    footer a { color: #FF6B35; text-decoration: none; }
   </style>
 </head>
 <body>
   <header>
-    <div class="logo"><span>💪</span></div>
+    <div class="logo">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29l-1.43-1.43z"/>
+      </svg>
+    </div>
     <h1>FitCoach Destek</h1>
   </header>
 
@@ -53,8 +58,8 @@
         <p>Giriş ekranındaki "Apple ile Giriş Yap" butonuna dokunarak Face ID veya Touch ID ile hızlıca giriş yapabilirsiniz.</p>
       </div>
       <div class="faq-item">
-        <h3>Hesabımı nasıl silebilirim? <span class="badge">Önemli</span></h3>
-        <p>Profil ekranı → "Hesabı Sil" butonuna dokunun → Onay verin. Tüm verileriniz kalıcı olarak silinir.</p>
+        <h3>Hesabımı nasıl silerim?</h3>
+        <p>Profil → "Hesabı Sil" butonuna dokunun → Onay verin. Tüm verileriniz kalıcı olarak silinir.</p>
       </div>
       <div class="faq-item">
         <h3>Şifremi unuttum, ne yapmalıyım?</h3>
@@ -62,7 +67,7 @@
       </div>
     </div>
 
-    <p style="text-align:center; color:#8e8e93; font-size:13px; padding: 8px 0 24px;">FitCoach © 2026 · <a href="mailto:handenurcoskun@icloud.com" style="color:#FF6B35; text-decoration:none;">İletişim</a></p>
+    <footer>FitCoach © 2026 · <a href="mailto:handenurcoskun@icloud.com">İletişim</a></footer>
   </div>
 </body>
 </html>
