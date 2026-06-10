@@ -197,7 +197,7 @@ class AuthService extends ChangeNotifier {
     return null;
   }
 
-  Future<String?> signInWithApple() async {
+  Future<String?> signInWithApple({UserRole? role, String? inviteCode}) async {
     try {
       final appleCredential = await SignInWithApple.getAppleIDCredential(
         scopes: [
@@ -213,7 +213,23 @@ class AuthService extends ChangeNotifier {
       final uid = userCredential.user!.uid;
       final existingDoc = await _db.collection('users').doc(uid).get();
       if (!existingDoc.exists) {
-        // Apple bazen ismi ilk girişte verir, sonrakilerde vermez
+        final effectiveRole = role ?? UserRole.trainer;
+        if (effectiveRole == UserRole.member) {
+          if (inviteCode == null || inviteCode.isEmpty) {
+            await _auth.signOut();
+            return 'Üye kaydı için davet kodu gerekli.';
+          }
+          final trainerQuery = await _db
+              .collection('users')
+              .where('inviteCode', isEqualTo: inviteCode)
+              .where('role', isEqualTo: 'trainer')
+              .limit(1)
+              .get();
+          if (trainerQuery.docs.isEmpty) {
+            await _auth.signOut();
+            return 'Geçersiz davet kodu.';
+          }
+        }
         final displayName = [
           appleCredential.givenName,
           appleCredential.familyName,
@@ -225,8 +241,8 @@ class AuthService extends ChangeNotifier {
           id: uid,
           name: name,
           email: userCredential.user!.email ?? appleCredential.email ?? '',
-          role: UserRole.trainer,
-          inviteCode: _generateInviteCode(),
+          role: effectiveRole,
+          inviteCode: effectiveRole == UserRole.trainer ? _generateInviteCode() : inviteCode!,
           createdAt: DateTime.now(),
         );
         await _db.collection('users').doc(uid).set(newUser.toMap());
@@ -239,10 +255,17 @@ class AuthService extends ChangeNotifier {
       return null;
     } on SignInWithAppleAuthorizationException catch (e) {
       if (e.code == AuthorizationErrorCode.canceled) return null;
+      if (e.code == AuthorizationErrorCode.notHandled ||
+          e.code == AuthorizationErrorCode.notInteractive) {
+        return 'Apple ile giriş bu cihazda desteklenmiyor. Gerçek bir iPhone kullanın.';
+      }
       return 'Apple ile giriş başarısız.';
+    } on FirebaseAuthException catch (e) {
+      debugPrint('Apple Firebase error: ${e.code} - ${e.message}');
+      return 'Apple ile giriş başarısız. (${e.code})';
     } catch (e) {
       debugPrint('Apple sign-in error: $e');
-      return 'Bir hata oluştu.';
+      return 'Apple ile giriş başarısız. Gerçek cihazda deneyin.';
     }
   }
 

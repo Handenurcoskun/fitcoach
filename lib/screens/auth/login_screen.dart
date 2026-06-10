@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
 import 'register_screen.dart';
@@ -20,6 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isPasswordVisible = false;
   bool _isLoading = false;
   bool _isGoogleLoading = false;
+  bool _isAppleLoading = false;
   String? _errorMessage;
 
   @override
@@ -100,13 +100,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _signInWithApple() async {
     setState(() {
-      _isGoogleLoading = true;
+      _isAppleLoading = true;
       _errorMessage = null;
     });
     final error = await context.read<AuthService>().signInWithApple();
     if (mounted) {
       setState(() {
-        _isGoogleLoading = false;
+        _isAppleLoading = false;
         _errorMessage = error;
       });
     }
@@ -274,10 +274,21 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                SignInWithAppleButton(
-                  onPressed: (_isLoading || _isGoogleLoading) ? () {} : _signInWithApple,
-                  style: SignInWithAppleButtonStyle.black,
-                  height: 52,
+                OutlinedButton.icon(
+                  onPressed: (_isLoading || _isGoogleLoading || _isAppleLoading) ? null : _signInWithApple,
+                  icon: _isAppleLoading
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.apple, size: 24),
+                  label: const Text('Apple ile Giriş Yap'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                    side: const BorderSide(color: AppColors.cardBorder),
+                    foregroundColor: AppColors.textPrimary,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 Row(

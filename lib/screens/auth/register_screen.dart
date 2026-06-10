@@ -22,6 +22,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isPasswordVisible = false;
   bool _isLoading = false;
   bool _isGoogleLoading = false;
+  bool _isAppleLoading = false;
   String? _errorMessage;
 
   @override
@@ -31,6 +32,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _passwordController.dispose();
     _trainerIdController.dispose();
     super.dispose();
+  }
+
+  Future<void> _signInWithApple() async {
+    if (_selectedRole == UserRole.member && _trainerIdController.text.trim().isEmpty) {
+      setState(() => _errorMessage = 'Apple ile kayıt için davet kodunu girin.');
+      return;
+    }
+    setState(() {
+      _isAppleLoading = true;
+      _errorMessage = null;
+    });
+    final error = await context.read<AuthService>().signInWithApple(
+          role: _selectedRole,
+          inviteCode: _selectedRole == UserRole.member
+              ? _trainerIdController.text.trim()
+              : null,
+        );
+    if (mounted) {
+      if (error == null) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      } else {
+        setState(() {
+          _isAppleLoading = false;
+          _errorMessage = error;
+        });
+      }
+    }
   }
 
   Future<void> _signInWithGoogle() async {
@@ -231,7 +259,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 20),
                 OutlinedButton.icon(
-                  onPressed: (_isLoading || _isGoogleLoading) ? null : _signInWithGoogle,
+                  onPressed: (_isLoading || _isGoogleLoading || _isAppleLoading) ? null : _signInWithGoogle,
                   icon: _isGoogleLoading
                       ? const SizedBox(
                           height: 18,
@@ -240,6 +268,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         )
                       : const Icon(Icons.g_mobiledata, size: 24),
                   label: const Text('Google ile Kayıt Ol'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                    side: const BorderSide(color: AppColors.cardBorder),
+                    foregroundColor: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: (_isLoading || _isGoogleLoading || _isAppleLoading) ? null : _signInWithApple,
+                  icon: _isAppleLoading
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.apple, size: 24),
+                  label: const Text('Apple ile Kayıt Ol'),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size.fromHeight(52),
                     side: const BorderSide(color: AppColors.cardBorder),

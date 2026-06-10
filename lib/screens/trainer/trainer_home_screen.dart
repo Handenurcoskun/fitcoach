@@ -567,6 +567,47 @@ class _ProfileTabState extends State<_ProfileTab> {
               ),
             ),
           ),
+          const Spacer(),
+          OutlinedButton.icon(
+            onPressed: () => _confirmDeleteAccount(context),
+            icon: const Icon(Icons.delete_forever_outlined, color: AppColors.error),
+            label: const Text('Hesabı Sil', style: TextStyle(color: AppColors.error)),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(48),
+              side: const BorderSide(color: AppColors.error),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteAccount(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hesabı Sil'),
+        content: const Text(
+          'Hesabın ve tüm verilerin kalıcı olarak silinecek. Bu işlem geri alınamaz.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('İptal'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final error = await context.read<AuthService>().deleteAccount();
+              if (error != null && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(error)),
+                );
+              }
+            },
+            child: const Text('Sil', style: TextStyle(color: AppColors.error)),
+          ),
         ],
       ),
     );
