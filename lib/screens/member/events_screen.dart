@@ -17,41 +17,38 @@ class MemberEventsScreen extends StatelessWidget {
         body: Center(child: Text('Bir eğitmene bağlı değilsiniz.')),
       );
     }
-    return Scaffold(
-      appBar: AppBar(title: const Text('Etkinlikler')),
-      body: StreamBuilder<List<EventModel>>(
-        stream: context
-            .read<FirestoreService>()
-            .watchUpcomingEventsForMember(user.trainerId!),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text("Hata: ${snapshot.error}"));
-          }
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final events = snapshot.data ?? [];
-          if (events.isEmpty) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.event_outlined, size: 64, color: AppColors.textSecondary),
-                  SizedBox(height: 16),
-                  Text('Yaklaşan etkinlik yok',
-                      style: TextStyle(color: AppColors.textSecondary)),
-                ],
-              ),
-            );
-          }
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: events.length,
-            itemBuilder: (context, i) =>
-                _MemberEventCard(event: events[i], userId: user.id),
+    final firestoreService = FirestoreService();
+    return StreamBuilder<List<EventModel>>(
+      stream: firestoreService
+          .watchUpcomingEventsForMember(user.trainerId!),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(child: Text("Hata: ${snapshot.error}"));
+        }
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final events = snapshot.data ?? [];
+        if (events.isEmpty) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.event_outlined, size: 64, color: AppColors.textSecondary),
+                SizedBox(height: 16),
+                Text('Yaklaşan etkinlik yok',
+                    style: TextStyle(color: AppColors.textSecondary)),
+              ],
+            ),
           );
-        },
-      ),
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: events.length,
+          itemBuilder: (context, i) =>
+              _MemberEventCard(event: events[i], userId: user.id),
+        );
+      },
     );
   }
 }
@@ -67,14 +64,14 @@ class _MemberEventCard extends StatefulWidget {
 
 class _MemberEventCardState extends State<_MemberEventCard> {
   bool _loading = false;
+  final _svc = FirestoreService();
 
   Future<void> _toggle() async {
     setState(() => _loading = true);
-    final svc = context.read<FirestoreService>();
     if (widget.event.isJoined(widget.userId)) {
-      await svc.leaveEvent(eventId: widget.event.id, userId: widget.userId);
+      await _svc.leaveEvent(eventId: widget.event.id, userId: widget.userId);
     } else {
-      await svc.joinEvent(eventId: widget.event.id, userId: widget.userId);
+      await _svc.joinEvent(eventId: widget.event.id, userId: widget.userId);
     }
     if (mounted) setState(() => _loading = false);
   }

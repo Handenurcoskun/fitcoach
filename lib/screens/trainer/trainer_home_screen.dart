@@ -8,7 +8,7 @@ import '../../models/user_model.dart';
 import '../../models/task_model.dart';
 import '../../models/task_completion_model.dart';
 import '../../models/nutrition_log_model.dart';
-import 'events_screen.dart';
+import 'events_screen.dart' show EventsScreen, CreateEventScreen;
 import '../../theme/app_theme.dart';
 import 'task_management_screen.dart';
 import 'member_detail_screen.dart';
@@ -48,6 +48,16 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
               )
             : Text(_currentIndex == 1 ? 'Görevler' : _currentIndex == 2 ? 'Etkinlikler' : 'Profil'),
         actions: [
+          if (_currentIndex == 2)
+            IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CreateEventScreen(trainerId: trainer.id),
+                ),
+              ),
+            ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => _confirmLogout(context),

@@ -13,57 +13,43 @@ class EventsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final trainer = context.read<AuthService>().currentUser!;
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Etkinlikler'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => CreateEventScreen(trainerId: trainer.id)),
-            ),
-          ),
-        ],
-      ),
-      body: StreamBuilder<List<EventModel>>(
-        stream: context.read<FirestoreService>().watchEventsByTrainer(trainer.id),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text("Hata: ${snapshot.error}"));
-          }
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final events = snapshot.data ?? [];
-          if (events.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.event_outlined, size: 64, color: AppColors.textSecondary),
-                  const SizedBox(height: 16),
-                  const Text('Henüz etkinlik yok', style: TextStyle(color: AppColors.textSecondary)),
-                  const SizedBox(height: 12),
-                  ElevatedButton.icon(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => CreateEventScreen(trainerId: trainer.id)),
-                    ),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Etkinlik Oluştur'),
+    return StreamBuilder<List<EventModel>>(
+      stream: FirestoreService().watchEventsByTrainer(trainer.id),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(child: Text("Hata: ${snapshot.error}"));
+        }
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final events = snapshot.data ?? [];
+        if (events.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.event_outlined, size: 64, color: AppColors.textSecondary),
+                const SizedBox(height: 16),
+                const Text('Henüz etkinlik yok', style: TextStyle(color: AppColors.textSecondary)),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => CreateEventScreen(trainerId: trainer.id)),
                   ),
-                ],
-              ),
-            );
-          }
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: events.length,
-            itemBuilder: (context, i) => _EventCard(event: events[i]),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Etkinlik Oluştur'),
+                ),
+              ],
+            ),
           );
-        },
-      ),
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: events.length,
+          itemBuilder: (context, i) => _EventCard(event: events[i]),
+        );
+      },
     );
   }
 }
@@ -222,7 +208,7 @@ class EventDetailScreen extends StatelessWidget {
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              await context.read<FirestoreService>().deleteEvent(event.id);
+              await FirestoreService().deleteEvent(event.id);
               if (context.mounted) Navigator.pop(context);
             },
             child: const Text('Sil', style: TextStyle(color: AppColors.error)),
@@ -260,7 +246,7 @@ class _ParticipantList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<UserModel>>(
-      stream: context.read<FirestoreService>().watchMembersForTrainer(
+      stream: FirestoreService().watchMembersForTrainer(
             context.read<AuthService>().currentUser!.id,
           ),
       builder: (context, snapshot) {
@@ -362,7 +348,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       participants: [],
       createdAt: DateTime.now(),
     );
-    await context.read<FirestoreService>().createEvent(event);
+    await FirestoreService().createEvent(event);
     if (mounted) Navigator.pop(context);
   }
 
