@@ -77,5 +77,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Bu uygulama konum bilginizi kullanmaz. Bu açıklama, üçüncü taraf SDK gereksinimleri nedeniyle zorunludur.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Bu uygulama konum bilginizi kullanmaz. Bu açıklama, üçüncü taraf SDK gereksinimleri nedeniyle zorunludur.</string>
 </dict>
 </plist>
