@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
@@ -274,23 +275,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     foregroundColor: AppColors.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: (_isLoading || _isGoogleLoading || _isAppleLoading) ? null : _signInWithApple,
-                  icon: _isAppleLoading
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.apple, size: 24),
-                  label: const Text('Apple ile Kayıt Ol'),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(52),
-                    side: const BorderSide(color: AppColors.cardBorder),
-                    foregroundColor: AppColors.textPrimary,
+                if (defaultTargetPlatform == TargetPlatform.iOS) ...[
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: (_isLoading || _isGoogleLoading || _isAppleLoading) ? null : _signInWithApple,
+                    icon: _isAppleLoading
+                        ? const SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.apple, size: 24),
+                    label: const Text('Apple ile Kayıt Ol'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(52),
+                      side: const BorderSide(color: AppColors.cardBorder),
+                      foregroundColor: AppColors.textPrimary,
+                    ),
                   ),
-                ),
+                ],
                 const SizedBox(height: 24),
               ],
             ),

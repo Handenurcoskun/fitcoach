@@ -3,6 +3,7 @@ import '../models/user_model.dart';
 import '../models/task_model.dart';
 import '../models/task_completion_model.dart';
 import '../models/measurement_model.dart';
+import '../models/event_model.dart';
 import '../models/nutrition_log_model.dart';
 
 class FirestoreService {
@@ -208,5 +209,55 @@ class FirestoreService {
   Future<String?> getOnesignalId(String userId) async {
     final doc = await _db.collection('users').doc(userId).get();
     return doc.data()?['onesignalId'] as String?;
+  }
+
+  // ── ETKİNLİKLER ──────────────────────────────────────────────
+
+  Future<void> createEvent(EventModel event) async {
+    await _db.collection('events').add(event.toMap());
+  }
+
+  Future<void> deleteEvent(String eventId) async {
+    await _db.collection('events').doc(eventId).delete();
+  }
+
+  Stream<List<EventModel>> watchEventsByTrainer(String trainerId) {
+    return _db
+        .collection('events')
+        .where('trainerId', isEqualTo: trainerId)
+        .snapshots()
+        .map((s) {
+          final list = s.docs.map((d) => EventModel.fromMap(d.data(), d.id)).toList();
+          list.sort((a, b) => a.dateTime.compareTo(b.dateTime));
+          return list;
+        });
+  }
+
+  Stream<List<EventModel>> watchUpcomingEventsForMember(String trainerId) {
+    final now = DateTime.now();
+    return _db
+        .collection('events')
+        .where('trainerId', isEqualTo: trainerId)
+        .snapshots()
+        .map((s) {
+          final list = s.docs
+              .map((d) => EventModel.fromMap(d.data(), d.id))
+              .where((e) => e.dateTime.isAfter(now))
+              .toList();
+          list.sort((a, b) => a.dateTime.compareTo(b.dateTime));
+          return list;
+        });
+  }
+
+  Future<void> joinEvent({required String eventId, required String userId}) async {
+    await _db.collection('events').doc(eventId).update({
+      'participants': FieldValue.arrayUnion([userId]),
+    });
+  }
+
+  Future<void> leaveEvent({required String eventId, required String userId}) async {
+    await _db.collection('events').doc(eventId).update({
+      'participants': FieldValue.arrayRemove([userId]),
+    });
   }
 }

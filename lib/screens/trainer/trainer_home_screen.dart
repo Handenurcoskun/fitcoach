@@ -8,6 +8,7 @@ import '../../models/user_model.dart';
 import '../../models/task_model.dart';
 import '../../models/task_completion_model.dart';
 import '../../models/nutrition_log_model.dart';
+import 'events_screen.dart';
 import '../../theme/app_theme.dart';
 import 'task_management_screen.dart';
 import 'member_detail_screen.dart';
@@ -45,7 +46,7 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
                   ),
                 ],
               )
-            : Text(_currentIndex == 1 ? 'Görevler' : 'Profil'),
+            : Text(_currentIndex == 1 ? 'Görevler' : _currentIndex == 2 ? 'Etkinlikler' : 'Profil'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -63,6 +64,7 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
             firestoreService: _firestoreService,
           ),
           TaskManagementScreen(trainerId: trainer.id),
+          const EventsScreen(),
           _ProfileTab(trainer: trainer),
         ],
       ),
@@ -79,6 +81,11 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
             icon: Icon(Icons.task_outlined),
             activeIcon: Icon(Icons.task),
             label: 'Görevler',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.event_outlined),
+            activeIcon: Icon(Icons.event),
+            label: 'Etkinlikler',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outlined),

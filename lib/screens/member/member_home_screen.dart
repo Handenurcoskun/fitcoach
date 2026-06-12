@@ -10,8 +10,8 @@ import '../../theme/app_theme.dart';
 import 'task_history_screen.dart';
 import 'nutrition_screen.dart';
 import 'profile_screen.dart';
+import 'events_screen.dart';
 import '../measurements/measurements_screen.dart';
-import 'profile_screen.dart';
 
 class MemberHomeScreen extends StatefulWidget {
   const MemberHomeScreen({super.key});
@@ -52,7 +52,9 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
                   ? 'Ölçümlerim'
                   : _currentIndex == 3
                       ? 'Beslenme'
-                      : 'Profil'),
+                      : _currentIndex == 4
+                          ? 'Etkinlikler'
+                          : 'Profil'),
         actions: const [],
       ),
       body: IndexedStack(
@@ -62,6 +64,7 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
           TaskHistoryScreen(key: _historyKey, memberId: member.id),
           MeasurementsScreen(member: member, canAdd: true),
           const NutritionScreen(),
+          const MemberEventsScreen(),
           const MemberProfileScreen(),
         ],
       ),
@@ -91,6 +94,11 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
             icon: Icon(Icons.restaurant_outlined),
             activeIcon: Icon(Icons.restaurant),
             label: 'Beslenme',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.event_outlined),
+            activeIcon: Icon(Icons.event),
+            label: 'Etkinlikler',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outlined),
@@ -522,9 +530,24 @@ class _MemberTaskCard extends StatelessWidget {
                   ),
                   if (task.description.isNotEmpty) ...[
                     const SizedBox(height: 4),
-                    Text(task.description,
-                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                        maxLines: 2, overflow: TextOverflow.ellipsis),
+                    GestureDetector(
+                      onTap: () => showDialog(
+                        context: context,
+                        builder: (_) => AlertDialog(
+                          title: Text(task.title),
+                          content: SingleChildScrollView(child: Text(task.description)),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Kapat'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      child: Text(task.description,
+                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                          maxLines: 2, overflow: TextOverflow.ellipsis),
+                    ),
                   ],
                   if (isDone && completion.completedAt != null) ...[
                     const SizedBox(height: 4),
