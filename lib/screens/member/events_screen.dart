@@ -13,9 +13,7 @@ class MemberEventsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = context.read<AuthService>().currentUser!;
     if (user.trainerId == null) {
-      return const Scaffold(
-        body: Center(child: Text('Bir eğitmene bağlı değilsiniz.')),
-      );
+      return const Center(child: Text('Bir eğitmene bağlı değilsiniz.'));
     }
     final firestoreService = FirestoreService();
     return StreamBuilder<List<EventModel>>(
